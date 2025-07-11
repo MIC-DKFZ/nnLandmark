@@ -180,7 +180,6 @@ class nnLandmark_trainer(MotorRegressionTrainer_BCEtopK20Loss_moreDA_3_5kep_EDT2
                  device: torch.device = torch.device('cuda')):
         super().__init__(plans, configuration, fold, dataset_json, device)
         self.min_motor_distance = 15
-        self.num_epochs = 20
         self.enable_deep_supervision = False
 
     def configure_rotation_dummyDA_mirroring_and_inital_patch_size(self):

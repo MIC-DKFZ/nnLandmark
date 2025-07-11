@@ -55,44 +55,6 @@ def build_point(radii, use_distance_transform, binarize):
         structuring_element_resized = (structuring_element_resized >= 0.5).float()
     return structuring_element_resized
 
-class ConvertSegToRegrTarget(BasicTransform):
-    def __init__(self,
-                 target_type: str = 'Gaussian',
-                 gaussian_sigma: float = 5,
-                 edt_radius: int = 10
-                 ):
-        super().__init__()
-        self.target_type = target_type
-        self.gaussian_sigma = gaussian_sigma
-        self.edt_radius = edt_radius
-        assert target_type in ['Gaussian', 'EDT']
-
-    def apply(self, data_dict, **params):
-        seg = data_dict['segmentation']
-        regr_target = torch.zeros_like(seg, dtype=torch.float32)
-        assert seg.ndim == 4, f'this is only implemented for 3d and axes c, x, y, z. Got shape {seg.shape}'
-        for c in range(seg.shape[0]):
-            components = torch.unique(seg[c])
-            components = [i for i in components if i != 0]
-            if len(components) > 0:
-                stats = cc3d.statistics(seg[c].numpy().astype(np.uint8))
-                for ci in components:
-                    bbox = stats['bounding_boxes'][ci]  # (slice(3, 9, None), slice(4, 10, None), slice(6, 12, None))
-                    crop = (seg[c][bbox] == ci).numpy()
-                    dist = edt.edt(crop, black_border=True)
-                    center = np.unravel_index(np.argmax(dist), crop.shape)
-                    center = [i + j.start for i, j in zip(center, bbox)]
-                    # now place gaussian or etd on these coordinates
-                    if self.target_type == 'EDT':
-                        target = build_point(tuple([self.edt_radius] * 3), use_distance_transform=True, binarize=False)
-                    else:
-                        target = torch.from_numpy(gaussian_kernel_3d(self.gaussian_sigma))
-                        target /= target.max()
-                    insert_bbox = [[i - j // 2, i - j // 2 + j] for i, j in zip(center, target.shape)]
-                    regr_target[c] = paste_tensor_optionalMax(regr_target[c], target, insert_bbox, use_max=True)
-        # it would be nicer to write that into regression_target but that would require to change the nnunet dataloader so nah
-        data_dict['segmentation'] = regr_target
-        return data_dict
 
 
 

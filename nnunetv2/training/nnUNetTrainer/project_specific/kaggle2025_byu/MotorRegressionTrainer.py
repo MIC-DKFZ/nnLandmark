@@ -24,7 +24,6 @@ from nnunetv2.inference.kaggle2025_byu.gaussian_blur_3d import GaussianBlur3D
 from nnunetv2.inference.kaggle2025_byu.iterative_maxpool import iterative_3x3_same_padding_pool3d
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
 from nnunetv2.paths import nnUNet_raw
-from nnunetv2.training.data_augmentation.kaggle_byu_motor_regression import ConvertSegToRegrTarget
 from nnunetv2.training.dataloading.data_loader import nnUNetDataLoader
 from nnunetv2.training.dataloading.nnunet_dataset import infer_dataset_class
 from nnunetv2.training.loss.deep_supervision import DeepSupervisionWrapper

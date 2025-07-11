@@ -18,9 +18,10 @@ from threadpoolctl import threadpool_limits
 from torch import nn, autocast, topk
 from torch.nn import functional as F, BCEWithLogitsLoss
 
-from nnunetv2.configuration import default_num_processes
+from nnunetv2.configuration import default_num_processes, ANISO_THRESHOLD
 from nnunetv2.dataset_conversion.kaggle_byu.official_data_to_nnunet import convert_coordinates
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
+from nnunetv2.training.data_augmentation.compute_initial_patch_size import get_patch_size
 from nnunetv2.training.data_augmentation.kaggle_byu_motor_regression import build_point, gaussian_kernel_3d, \
     paste_tensor_optionalMax
 from nnunetv2.training.dataloading.data_loader import nnUNetDataLoader
@@ -181,6 +182,51 @@ class nnLandmark_trainer(MotorRegressionTrainer_BCEtopK20Loss_moreDA_3_5kep_EDT2
         self.min_motor_distance = 15
         self.num_epochs = 20
         self.enable_deep_supervision = False
+
+    def configure_rotation_dummyDA_mirroring_and_inital_patch_size(self):
+        """
+        disable mirroring
+        """
+        patch_size = self.configuration_manager.patch_size
+        dim = len(patch_size)
+        # todo rotation should be defined dynamically based on patch size (more isotropic patch sizes = more rotation)
+        if dim == 2:
+            do_dummy_2d_data_aug = False
+            # todo revisit this parametrization
+            if max(patch_size) / min(patch_size) > 1.5:
+                rotation_for_DA = (-15. / 360 * 2. * np.pi, 15. / 360 * 2. * np.pi)
+            else:
+                rotation_for_DA = (-180. / 360 * 2. * np.pi, 180. / 360 * 2. * np.pi)
+            mirror_axes = (0, 1)
+        elif dim == 3:
+            # todo this is not ideal. We could also have patch_size (64, 16, 128) in which case a full 180deg 2d rot would be bad
+            # order of the axes is determined by spacing, not image size
+            do_dummy_2d_data_aug = (max(patch_size) / patch_size[0]) > ANISO_THRESHOLD
+            if do_dummy_2d_data_aug:
+                # why do we rotate 180 deg here all the time? We should also restrict it
+                rotation_for_DA = (-180. / 360 * 2. * np.pi, 180. / 360 * 2. * np.pi)
+            else:
+                rotation_for_DA = (-30. / 360 * 2. * np.pi, 30. / 360 * 2. * np.pi)
+            mirror_axes = (0, 1, 2)
+        else:
+            raise RuntimeError()
+
+        # todo this function is stupid. It doesn't even use the correct scale range (we keep things as they were in the
+        #  old nnunet for now)
+        initial_patch_size = get_patch_size(patch_size[-dim:],
+                                            rotation_for_DA,
+                                            rotation_for_DA,
+                                            rotation_for_DA,
+                                            (0.75, 1.35))
+        if do_dummy_2d_data_aug:
+            initial_patch_size[0] = patch_size[0]
+
+        self.print_to_log_file(f'do_dummy_2d_data_aug: {do_dummy_2d_data_aug}')
+
+        mirror_axes = None
+        self.inference_allowed_mirroring_axes = mirror_axes
+
+        return rotation_for_DA, do_dummy_2d_data_aug, initial_patch_size, mirror_axes
 
     def get_training_transforms(
             self, patch_size: Union[np.ndarray, Tuple[int]],

@@ -123,22 +123,25 @@ def gaussian_kernel_3d(sigma, truncate=3.0):
     return kernel
 
 
-def paste_tensor_optionalMax(target: torch.Tensor, source: torch.Tensor, bbox, use_max=False):
+def paste_tensor_optionalMax(target, source, bbox, use_max=False):
     """
-    Paste or combine a source tensor into a target tensor using a given bounding box,
+    Paste or combine a source tensor/array into a target tensor/array using a given bounding box,
     with optional pixelwise maximum.
 
+    Supports both NumPy arrays and PyTorch tensors. Output type matches input target type.
+
     Args:
-        target (torch.Tensor): 3D tensor of shape (T0, T1, T2) on CPU.
-        source (torch.Tensor): 3D tensor of shape (S0, S1, S2) on CPU.
-                        paste_tensor_optionalMax       Must match the size of bbox.
+        target (np.ndarray or torch.Tensor): 3D volume.
+        source (np.ndarray or torch.Tensor): 3D volume (same shape as bbox region).
         bbox (list or tuple): Bounding box as [[x1, x2], [y1, y2], [z1, z2]]
-                              in target coordinate space.
         use_max (bool): If True, combine using pixelwise max instead of direct paste.
 
     Returns:
-        torch.Tensor: Modified target tensor.
+        Same type as `target`: Modified 3D volume.
     """
+    is_numpy = isinstance(target, np.ndarray)
+    xp = np if is_numpy else torch
+
     target_shape = target.shape
     target_indices = []
     source_indices = []
@@ -155,7 +158,6 @@ def paste_tensor_optionalMax(target: torch.Tensor, source: torch.Tensor, bbox, u
         target_indices.append((t_start, t_end))
         source_indices.append((s_start, s_end))
 
-    # Extract slices
     tz0, tz1 = target_indices[0]
     ty0, ty1 = target_indices[1]
     tx0, tx1 = target_indices[2]
@@ -163,13 +165,13 @@ def paste_tensor_optionalMax(target: torch.Tensor, source: torch.Tensor, bbox, u
     sy0, sy1 = source_indices[1]
     sx0, sx1 = source_indices[2]
 
-    target_slice = target[tz0:tz1, ty0:ty1, tx0:tx1]
-    source_slice = source[sz0:sz1, sy0:sy1, sx0:sx1]
-
     if use_max:
-        target[tz0:tz1, ty0:ty1, tx0:tx1] = torch.maximum(target_slice, source_slice)
+        target[tz0:tz1, ty0:ty1, tx0:tx1] = xp.maximum(
+            target[tz0:tz1, ty0:ty1, tx0:tx1],
+            source[sz0:sz1, sy0:sy1, sx0:sx1]
+        )
     else:
-        target[tz0:tz1, ty0:ty1, tx0:tx1] = source_slice
+        target[tz0:tz1, ty0:ty1, tx0:tx1] = source[sz0:sz1, sy0:sy1, sx0:sx1]
 
     return target
 

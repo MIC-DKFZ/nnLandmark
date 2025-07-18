@@ -53,6 +53,7 @@ from nnunetv2.configuration import default_num_processes
 from nnunetv2.dataset_conversion.Dataset119_ToothFairy2_All import load_json
 from nnunetv2.dataset_conversion.Dataset737_convert_to_spheres import generate_segmentation
 from nnunetv2.dataset_conversion.kaggle_byu.official_data_to_nnunet import convert_coordinates
+from nnunetv2.imageio.nibabel_reader_writer import NibabelIOWithReorient
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
 from nnunetv2.paths import nnUNet_raw
 from nnunetv2.training.data_augmentation.compute_initial_patch_size import get_patch_size
@@ -600,10 +601,12 @@ class nnLandmark_trainer(MotorRegressionTrainer_BCEtopK20Loss_moreDA_3_5kep_EDT2
                                    "This is exactly what we need in perform_actual_validation")
 
         dsj = deepcopy(self.dataset_json)
-        dsj['labels'] = {'background': 0, **{str(i): i for i in range(1, 22)}}
+        n_landmarks = len(self.label_manager.foreground_labels)
+        dsj['labels'] = {'background': 0, **{str(i): i for i in range(1, n_landmarks)}}
         # don't worry about use_mirroring=True. self.inference_allowed_mirroring_axes is None.
+        # we set perform_everything_on_device=False because landmark tasks often have vram issues because of how many landmarks there are
         predictor = nnUNetPredictor(tile_step_size=0.5, use_gaussian=True, use_mirroring=True,
-                                    perform_everything_on_device=True, device=self.device, verbose=False,
+                                    perform_everything_on_device=False, device=self.device, verbose=False,
                                     verbose_preprocessing=False, allow_tqdm=False)
         predictor.manual_initialization(self.network, self.plans_manager, self.configuration_manager, None,
                                         dsj, self.__class__.__name__,
@@ -647,7 +650,6 @@ class nnLandmark_trainer(MotorRegressionTrainer_BCEtopK20Loss_moreDA_3_5kep_EDT2
                     raise NotImplementedError
 
                 self.print_to_log_file(f'{k}, shape {data.shape}, rank {self.local_rank}')
-                output_filename_truncated = join(validation_output_folder, k)
 
                 # predict logits
                 with torch.no_grad():
@@ -672,39 +674,71 @@ class nnLandmark_trainer(MotorRegressionTrainer_BCEtopK20Loss_moreDA_3_5kep_EDT2
                 crop_offset = [i[0] for i in properties['bbox_used_for_cropping']]
                 new_coordinates = [[k + crop_offset[l] for l, k in enumerate(i)] for i in new_coordinates]
 
+                # we need to export the coordinates as segs before we invert nibabel reorient
                 # export coordinates
-                out_dict = {i: {'coordinates': j, 'likelihood': l} for i, j, l in zip(range(1, 23), new_coordinates, det_p)}
-                save_json(out_dict, join(validation_output_folder, k + '.json'))
+                out_dict = {i: {'coordinates': j, 'likelihood': l} for i, j, l in zip(range(1, n_landmarks + 1), new_coordinates, det_p)}
 
                 # generate a segmentation visualizing the predicted coords
                 seg = generate_segmentation(properties['shape_before_cropping'], {i: out_dict[i]['coordinates'] for i in out_dict.keys()}, radius=4)
                 self.plans_manager.image_reader_writer_class().write_seg(seg, join(validation_output_folder, k + self.dataset_json['file_ending']), properties)
 
+                # If we loaded with nibabel with reorient we need to revert any potential reorientation we did
+                if self.plans_manager.image_reader_writer_class == NibabelIOWithReorient:
+                    from nibabel.orientations import io_orientation, axcodes2ornt, ornt_transform
+                    orig_affine = properties['nibabel_stuff']['original_affine']
+                    img_ornt = io_orientation(orig_affine)
+                    # Orientation of RAS
+                    ras_ornt = axcodes2ornt('RAS')
+                    # Transform from original to RAS
+                    revert = ornt_transform(ras_ornt, img_ornt)
+                    revert[:, 1] = revert[:, 1][::-1]
+
+                    # reconstruct original shape
+                    shape_before = [0, 0, 0]
+                    for i in range(3):
+                        target_axis = int(revert[i, 0])  # axis in the original
+                        shape_before[target_axis] = properties['shape_before_cropping'][i]
+
+                    new_coordinates = np.array(new_coordinates)
+                    out = np.zeros_like(new_coordinates)
+                    for i in range(3):  # loop over output axes
+                        orig_axis = int(revert[i, 0])
+                        flip = int(revert[i, 1])
+                        if flip == 1:
+                            out[:, i] = new_coordinates[:, orig_axis]
+                        else:
+                            out[:, i] = shape_before[orig_axis] - 1 - new_coordinates[:, orig_axis]
+                    new_coordinates = out
+
+                # now save coordinates (potentially corrected)
+                out_dict = {i: {'coordinates': j, 'likelihood': l} for i, j, l in zip(range(1, n_landmarks + 1), [[int(l) for l in m] for m in new_coordinates], det_p)}
+                save_json(out_dict, join(validation_output_folder, k + '.json'))
+
                 # export heatmaps, only works for nifti
-                if 'sitk_stuff' in properties.keys():
-                    # revert resize
-                    prediction_resized = interpolate(prediction[None], properties['shape_after_cropping_and_before_resampling'], mode='trilinear').cpu()[0]
-                    empty_cache(self.device)
-
-                    # revert cropping
-                    prediction_uncropped = torch.zeros((prediction_resized.shape[0], *properties['shape_before_cropping']), device='cpu', dtype=torch.float)
-                    insert_crop_into_image(prediction_uncropped, prediction_resized, properties['bbox_used_for_cropping'])
-                    del prediction_resized
-
-                    # revert transpose
-                    prediction_uncropped = prediction_uncropped.numpy().transpose([0] + [i + 1 for i in self.plans_manager.transpose_backward])
-
-                    # round to 0.01
-                    prediction_uncropped = np.round(prediction_uncropped, decimals=2)
-
-                    # convert to nifti and export
-                    for i in range(1, prediction_uncropped.shape[0] + 1):
-                        prediction_uncropped_itk = sitk.GetImageFromArray(prediction_uncropped[i-1])
-                        prediction_uncropped_itk.SetSpacing(properties['sitk_stuff']['spacing'])
-                        prediction_uncropped_itk.SetOrigin(properties['sitk_stuff']['origin'])
-                        prediction_uncropped_itk.SetDirection(properties['sitk_stuff']['direction'])
-
-                        sitk.WriteImage(prediction_uncropped_itk, join(validation_output_folder, k + f'__{i:03d}.nii.gz'))
+                # if 'sitk_stuff' in properties.keys():
+                #     # revert resize
+                #     prediction_resized = interpolate(prediction[None], properties['shape_after_cropping_and_before_resampling'], mode='trilinear').cpu()[0]
+                #     empty_cache(self.device)
+                #
+                #     # revert cropping
+                #     prediction_uncropped = torch.zeros((prediction_resized.shape[0], *properties['shape_before_cropping']), device='cpu', dtype=torch.float)
+                #     insert_crop_into_image(prediction_uncropped, prediction_resized, properties['bbox_used_for_cropping'])
+                #     del prediction_resized
+                #
+                #     # revert transpose
+                #     prediction_uncropped = prediction_uncropped.numpy().transpose([0] + [i + 1 for i in self.plans_manager.transpose_backward])
+                #
+                #     # round to 0.01
+                #     prediction_uncropped = np.round(prediction_uncropped, decimals=2)
+                #
+                #     # convert to nifti and export
+                #     for i in range(1, prediction_uncropped.shape[0] + 1):
+                #         prediction_uncropped_itk = sitk.GetImageFromArray(prediction_uncropped[i-1])
+                #         prediction_uncropped_itk.SetSpacing(properties['sitk_stuff']['spacing'])
+                #         prediction_uncropped_itk.SetOrigin(properties['sitk_stuff']['origin'])
+                #         prediction_uncropped_itk.SetDirection(properties['sitk_stuff']['direction'])
+                #
+                #         sitk.WriteImage(prediction_uncropped_itk, join(validation_output_folder, k + f'__{i:03d}.nii.gz'))
 
         evaluate_MRE(validation_output_folder, join(nnUNet_raw, self.plans_manager.dataset_name, 'landmark_coordinates.json'))
 

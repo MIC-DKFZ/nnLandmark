@@ -2,7 +2,7 @@ import shutil
 
 import natsort
 import numpy as np
-from batchgenerators.utilities.file_and_folder_operations import join, maybe_mkdir_p, load_json, nifti_files
+from batchgenerators.utilities.file_and_folder_operations import join, maybe_mkdir_p, load_json, nifti_files, save_json
 import SimpleITK as sitk
 
 from nnunetv2.dataset_conversion.Dataset737_convert_to_spheres import generate_segmentation
@@ -38,11 +38,11 @@ if __name__ == '__main__':
         img_itk = sitk.ReadImage(img)
         shape = sitk.GetArrayFromImage(img_itk).shape
 
-        coords_here = {int(ky): np.round(coords[k][ky])[::-1] for ky in all_landmarks}
+        coords_here = {int(ky): [int(i) for i in np.round(coords[k][ky])[::-1]] for ky in all_landmarks}
 
         all_coords[k] = coords_here
 
-        seg = generate_segmentation(shape, coords_here, radius=2)
+        seg = generate_segmentation(shape, coords_here, radius=2, use_max=True)
         seg_itk = sitk.GetImageFromArray(seg)
         seg_itk.SetSpacing(img_itk.GetSpacing())
         seg_itk.SetOrigin(img_itk.GetOrigin())
@@ -57,11 +57,31 @@ if __name__ == '__main__':
         {'background': 0, **{f"landmark_{int(k):02d}": int(k) for k in all_landmarks}},
          len(train_identifiers),
         '.nii.gz',
-        citation='',
+        citation='Please also see license for data citation!. AFIDS itself is: Taha, A. et al. Magnetic resonance imaging datasets with anatomical fiducials for quality control and registration. bioRxiv 2022.11.21.516173 (2022)',
         regions_class_order=None,
         dataset_name=dataset_name,
-        reference='',
-        license='',
+        reference='https://github.com/afids/afids-data',
+        license= """
+        AFIDs:
+        100 Unrelated Humman Connectome Project (AFIDs-HCP dataset; n = 30):
+            Repo link: https://github.com/afids/AFIDs-HCP
+            Image Use Terms: https://www.humanconnectome.org/study/hcp-young-adult/document/wu-minn-hcp-consortium-open-access-data-use-terms
+            Annotations license: Attribution 4.0 International (CC BY 4.0)
+        Open Access Series of Imaging Studies (AFIDs-OASIS dataset; n = 30):
+            Download link: https://github.com/afids/AFIDs-OASIS
+            Images Use Term: https://www.oasis-brains.org/#access
+            Annotations license: Creative Commons Attribution 4.0 International Public License
+        London Health Sciences Center Parkinson's Disease Dataset (LHSCPD ; n = 40) (local dataset by the authors)
+            Download link: https://openneuro.org/datasets/ds004471/versions/1.0.1
+            images + annotations license: Attribution 4.0 International (CC BY 4.0)
+        Stereotactic Neurosurgery 7-Tesla Control Dataset (SNSX; n = 32) (local dataset by the authors)
+            Download link: https://openneuro.org/datasets/ds004470/versions/1.0.1
+            images + annotations license: Attribution 4.0 International (CC BY 4.0)
+            """,
         converted_by='Fabian Isensee',
         note='This is a landmark detection dataset.',
     )
+
+
+    save_json({i: {k: [int(l) for l in j[k]] for k in j.keys()} for i, j in all_coords.items()},
+              join(target_dir, 'landmark_coordinates.json'), sort_keys=False)

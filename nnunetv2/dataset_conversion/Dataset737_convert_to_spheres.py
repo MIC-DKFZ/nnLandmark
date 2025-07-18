@@ -14,15 +14,17 @@ from nnunetv2.dataset_conversion.Dataset119_ToothFairy2_All import load_json
 from nnunetv2.dataset_conversion.generate_dataset_json import generate_dataset_json
 from nnunetv2.dataset_conversion.kaggle_byu.official_data_to_nnunet import convert_coordinates
 from nnunetv2.paths import nnUNet_raw
+from nnunetv2.training.data_augmentation.kaggle_byu_motor_regression import paste_tensor_optionalMax
 
 
-def generate_segmentation(shape, coordinates: dict[int, List[int]], radius: int = 2):
+def generate_segmentation(shape, coordinates: dict[int, List[int]], radius: int = 2, use_max = False):
     sphere = generate_ball([radius] * 3, dtype=np.uint8)
     seg = np.zeros(shape, dtype=np.uint8)
 
     for lb, ci in coordinates.items():
         bbox = [[i - radius, i + radius + 1] for i in ci]
-        insert_crop_into_image(seg, sphere * lb, bbox)
+        paste_tensor_optionalMax(seg, sphere * lb, bbox, use_max=use_max)
+        # insert_crop_into_image(seg, sphere * lb, bbox)
 
     return seg
 

@@ -876,3 +876,10 @@ class nnLandmark_trainer(MotorRegressionTrainer_BCEtopK20Loss_moreDA_3_5kep_EDT2
         _ = next(mt_gen_train)
         _ = next(mt_gen_val)
         return mt_gen_train, mt_gen_val
+
+
+class nnLandmark_trainer_edt7(nnLandmark_trainer):
+    def __init__(self, plans: dict, configuration: str, fold: int, dataset_json: dict,
+                 device: torch.device = torch.device('cuda')):
+        super().__init__(plans, configuration, fold, dataset_json, device)
+        self.edt_radius = 7

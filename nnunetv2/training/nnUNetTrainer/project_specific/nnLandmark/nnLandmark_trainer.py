@@ -264,7 +264,7 @@ class nnLandmark_trainer(MotorRegressionTrainer_BCEtopK20Loss_moreDA_3_5kep_EDT2
     def __init__(self, plans: dict, configuration: str, fold: int, dataset_json: dict,
                  device: torch.device = torch.device('cuda')):
         super().__init__(plans, configuration, fold, dataset_json, device)
-        self.min_motor_distance = 15
+        self.edt_radius = 15
         self.enable_deep_supervision = False
         self.num_epochs = 1000
 
@@ -552,7 +552,7 @@ class nnLandmark_trainer(MotorRegressionTrainer_BCEtopK20Loss_moreDA_3_5kep_EDT2
             )
 
         transforms.append(ConvertSegToLandmarkTarget(len(self.label_manager.foreground_labels), 'EDT',
-                                                        edt_radius=15))
+                                                        edt_radius=self.edt_radius))
 
         transforms = ComposeTransforms(transforms)
 
@@ -583,7 +583,7 @@ class nnLandmark_trainer(MotorRegressionTrainer_BCEtopK20Loss_moreDA_3_5kep_EDT2
                                                                                 foreground_labels, regions,
                                                                                 ignore_label)
         transforms.transforms.append(ConvertSegToLandmarkTarget(len(self.label_manager.foreground_labels), 'EDT',
-                                                        edt_radius=15))
+                                                        edt_radius=self.edt_radius))
         return transforms
 
     def perform_actual_validation(self, save_probabilities: bool = False):

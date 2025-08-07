@@ -1,0 +1,24 @@
+
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run nnUNet training",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "nnunetv2/run/run_training.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "733",
+                "3d_fullres",
+                "0",
+                "-tr",
+                "nnLandmark"
+            ]
+        }
+    ]
+}

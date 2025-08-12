@@ -1524,7 +1524,7 @@ class nnLandmark_v1(nnLandmark_fabi):
         self.enable_deep_supervision = False
         self.blobb_type = 'Gaussian'
         self.initial_lr = 5e-4
-        self.grad_clip = 0.05
+        self.grad_clip = 1.
 
     def get_training_transforms(
             self, patch_size: Union[np.ndarray, Tuple[int]],
@@ -1714,7 +1714,7 @@ class nnLandmark_v1(nnLandmark_fabi):
             # import IPython;IPython.embed()
             # if False:
             #     from batchviewer import view_batch
-            #     view_batch(data[0], target[0][0], F.sigmoid(output[0][0]))
+            #     view_batch(data[0], target_structure[0][0], F.sigmoid(output[0][0]))
 
          # take loss out of autocast! Sigmoid is not stable in fp16
         l = self.loss(output, target_structure, batch['bboxes'])

@@ -1732,6 +1732,7 @@ class nnLandmark_v1(nnLandmark_fabi):
         return {'loss': l.detach().cpu().numpy()}
 
     def _build_loss(self):
+
         loss = MSE_loss()
 
         # if self._do_i_compile():
@@ -1742,3 +1743,9 @@ class nnLandmark_v1(nnLandmark_fabi):
 
         assert not self.enable_deep_supervision, 'bruh.'
         return loss
+    
+    def configure_optimizers(self): 
+        optimizer = torch.optim.Adam(self.network.parameters(), self.initial_lr)
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=800, gamma=0.1)
+
+        return optimizer, lr_scheduler   

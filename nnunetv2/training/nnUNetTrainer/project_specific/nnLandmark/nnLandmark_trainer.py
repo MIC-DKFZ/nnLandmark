@@ -766,6 +766,8 @@ class nnLandmark_trainer(MotorRegressionTrainer_BCEtopK20Loss_moreDA_3_5kep_EDT2
                 # revert cropping
                 crop_offset = [i[0] for i in properties['bbox_used_for_cropping']]
                 new_coordinates = [[k + crop_offset[l] for l, k in enumerate(i)] for i in new_coordinates]
+                # alex: change x and z coordinates
+                new_coordinates = [[coord[2], coord[1], coord[0]] for coord in new_coordinates]
 
                 # we need to export the coordinates as segs before we invert nibabel reorient
                 # export coordinates

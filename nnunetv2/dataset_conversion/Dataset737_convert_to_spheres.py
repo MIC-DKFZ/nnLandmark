@@ -17,7 +17,7 @@ from nnunetv2.paths import nnUNet_raw
 from nnunetv2.training.data_augmentation.kaggle_byu_motor_regression import paste_tensor_optionalMax
 
 
-def generate_segmentation(shape, coordinates: dict[int, List[int]], radius: int = 2, use_max = False):
+def generate_segmentation(shape, coordinates: dict[int, List[int]], radius: int = 1, use_max = False):
     sphere = generate_ball([radius] * 3, dtype=np.uint8)
     seg = np.zeros(shape, dtype=np.uint8)
 

@@ -1,78 +1,135 @@
 #!/usr/bin/env python3
-"""
-Randomly split <imagesAll> / <labelsAll> into
-    imagesTs / labelsTs   (exactly N test cases)
-    imagesTr / labelsTr   (the remaining cases)
-
-Usage
------
-python split_train_test.py \
-       --images  /path/imagesAll \
-       --labels  /path/labelsAll \
-       --outdir  /path            \
-       --n_test  100              \
-       [--seed 42]                \
-       [--move]                   # move instead of copy
-"""
-
-import argparse, random, shutil
+import argparse, shutil
 from pathlib import Path
 
-def case_id_from_image(fn: Path) -> str:
-    """Strip '_0000' and (double) extension."""
-    stem = fn.name
-    if stem.endswith(".nii.gz"):
-        stem = stem[:-7]
-    elif stem.endswith(".nii"):
-        stem = stem[:-4]
-    else:  # .nrrd or others
-        stem = fn.stem
-    if stem.endswith("_0000"):
-        stem = stem[:-5]
-    return stem
+# ---------- helpers ----------
+def strip_ext(name: str) -> str:
+    if name.endswith(".nii.gz"): return name[:-7]
+    if name.endswith(".nii"):    return name[:-4]
+    return Path(name).stem
 
-def collect_pairs(img_dir: Path, lbl_dir: Path):
+def strip_modality(stem: str) -> str:
+    # remove trailing '_0000' if present (images)
+    return stem[:-5] if stem.endswith("_0000") else stem
+
+def canonical_key_from_name(name: str) -> str:
+    """
+    Canonical case key: start at first 'sub-' if present, then drop '_0000' and extension.
+    Works for:
+      'AFIDs-HCP_sub-103111_0000.nii.gz' -> 'sub-103111'
+      'sub-103111_0000.nii.gz'           -> 'sub-103111'
+      'AFIDs-HCP_sub-103111.nii.gz'      -> 'sub-103111'
+      'sub-103111.nii.gz'                -> 'sub-103111'
+    """
+    base = strip_ext(name)
+    i = base.find("sub-")
+    if i >= 0:
+        base = base[i:]
+    return strip_modality(base)
+
+def scan_pairs(images_dir: Path, labels_dir: Path) -> dict[str, tuple[Path, Path]]:
+    """
+    Build {case_key: (img_path, lbl_path)} for a directory pair.
+    Only includes cases where BOTH image & label exist.
+    """
+    imgs = {}
+    for p in images_dir.glob("*"):
+        if p.is_file():
+            key = canonical_key_from_name(p.name)
+            imgs[key] = p
+    lbls = {}
+    for p in labels_dir.glob("*"):
+        if p.is_file():
+            key = canonical_key_from_name(p.name)
+            lbls[key] = p
     pairs = {}
-    for img in img_dir.iterdir():
-        case = case_id_from_image(img)
-        lbl_matches = list(lbl_dir.glob(f"{case}.*"))
-        if lbl_matches:
-            pairs[case] = (img, lbl_matches[0])
+    for k, ip in imgs.items():
+        lp = lbls.get(k)
+        if lp is not None:
+            pairs[k] = (ip, lp)
     return pairs
 
-def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--images", default="/home/a332l/dev/Project_SoftDiceLoss/nnunet_data/nnUNet_raw/Dataset733_Afids/imagesAll/", help="imagesAll directory")
-    ap.add_argument("--labels", default="/home/a332l/dev/Project_SoftDiceLoss/nnunet_data/nnUNet_raw/Dataset733_Afids/labelsAll/", help="labelsAll directory")
-    ap.add_argument("--outdir", default="/home/a332l/dev/Project_SoftDiceLoss/nnunet_data/nnUNet_raw/Dataset733_Afids/", help="folder where new dirs are created")
-    ap.add_argument("--n_test", type=int, default=20, help="number of test cases")
-    ap.add_argument("--seed",   type=int, default=42,  help="RNG seed for reproducibility")
-    ap.add_argument("--move",   action="store_true",   help="move files instead of copying")
+def ensure_dirs(root: Path, split: str):
+    (root / f"images{split}").mkdir(parents=True, exist_ok=True)
+    (root / f"labels{split}").mkdir(parents=True, exist_ok=True)
+
+# ---------- main ----------
+def main():
+    ap = argparse.ArgumentParser(description="Reuse old Ts/Tr split by scanning old imagesTs/labelsTs.")
+    ap.add_argument("--new_root",
+        default="/home/a332l/dev/Project_nnLandmark/nnunet_data/nnUNet_raw/Dataset732_Afids/",
+        help="NEW dataset root; contains imagesAll/ and labelsAll/")
+    ap.add_argument("--old_root",
+        default="/home/a332l/dev/Project_nnLandmark/nnunet_data/first_submission/nnUNet_raw/Dataset704_afids/",
+        help="OLD dataset root; contains imagesTs/, labelsTs/ (and typically imagesTr/, labelsTr/)")
+    ap.add_argument("--move", action="store_true", help="move instead of copy")
     args = ap.parse_args()
 
-    random.seed(args.seed)
+    new_root = Path(args.new_root)
+    old_root = Path(args.old_root)
 
-    img_dir, lbl_dir = Path(args.images), Path(args.labels)
-    pairs = collect_pairs(img_dir, lbl_dir)
-    if len(pairs) < args.n_test:
-        raise SystemExit(f"Only {len(pairs)} pairs found — cannot pick {args.n_test} test cases.")
+    images_all = new_root / "imagesAll"
+    labels_all = new_root / "labelsAll"
+    if not images_all.is_dir() or not labels_all.is_dir():
+        raise SystemExit(f"❌ imagesAll or labelsAll not found under {new_root}")
 
-    test_keys = random.sample(list(pairs), args.n_test)
-    train_keys = [k for k in pairs if k not in test_keys]
+    # 1) Define TEST SET from OLD dataset by intersecting imagesTs & labelsTs (guaranteed pairs).
+    old_ts_images = old_root / "imagesTs"
+    old_ts_labels = old_root / "labelsTs"
+    if not old_ts_images.is_dir() or not old_ts_labels.is_dir():
+        raise SystemExit(f"❌ imagesTs or labelsTs not found under {old_root}")
+    old_ts_pairs = scan_pairs(old_ts_images, old_ts_labels)  # keys are like 'sub-103111'
+    ts_keys = set(old_ts_pairs.keys())
+    if not ts_keys:
+        raise SystemExit("❌ No paired cases found in old imagesTs/labelsTs.")
 
-    for split, keys in (("Ts", test_keys), ("Tr", train_keys)):
-        (Path(args.outdir) / f"images{split}").mkdir(parents=True, exist_ok=True)
-        (Path(args.outdir) / f"labels{split}").mkdir(parents=True, exist_ok=True)
+    # 2) Collect available pairs in NEW dataset (imagesAll & labelsAll).
+    new_pairs = scan_pairs(images_all, labels_all)  # {key: (img, lbl)}
+    new_keys = set(new_pairs.keys())
 
-        for k in keys:
-            img_src, lbl_src = pairs[k]
-            img_dst = Path(args.outdir) / f"images{split}" / img_src.name
-            lbl_dst = Path(args.outdir) / f"labels{split}" / lbl_src.name
-            op = shutil.move if args.move else shutil.copy
-            op(img_src, img_dst)
-            op(lbl_src, lbl_dst)
+    # 3) Split: Ts = intersection with old Ts; Tr = remaining paired cases.
+    ts_keys_new = sorted(ts_keys & new_keys)
+    missing_in_new = sorted(ts_keys - new_keys)
+    tr_keys_new = sorted(new_keys - set(ts_keys_new))
 
-    print(f"✅  {args.n_test} cases → Ts, {len(train_keys)} cases → Tr")
+    # 4) Prepare output dirs.
+    ensure_dirs(new_root, "Ts")
+    ensure_dirs(new_root, "Tr")
+    op = shutil.move if args.move else shutil.copy
+
+    # 5) Copy/move Ts.
+    n_ts = 0
+    for k in ts_keys_new:
+        img_src, lbl_src = new_pairs[k]
+        op(img_src, new_root / "imagesTs" / img_src.name)
+        op(lbl_src, new_root / "labelsTs" / lbl_src.name)
+        n_ts += 1
+
+    # 6) Copy/move Tr (all remaining paired cases).
+    n_tr = 0
+    for k in tr_keys_new:
+        img_src, lbl_src = new_pairs[k]
+        op(img_src, new_root / "imagesTr" / img_src.name)
+        op(lbl_src, new_root / "labelsTr" / lbl_src.name)
+        n_tr += 1
+
+    # 7) Report.
+    print(f"✅ Ts: {n_ts} pairs copied from new imagesAll/labelsAll (based on old Ts).")
+    print(f"✅ Tr: {n_tr} pairs copied (remaining paired cases).")
+
+    if missing_in_new:
+        print("\n⚠️  Old test cases missing in NEW dataset (no image+label pair found):")
+        for k in missing_in_new[:50]:
+            print("   -", k)
+        if len(missing_in_new) > 50:
+            print(f"   … and {len(missing_in_new) - 50} more")
+
+    # 8) Final on-disk check.
+    cnt = lambda p: len(list(p.glob("*")))
+    print("\nOn disk:")
+    print(f"  imagesTs={cnt(new_root/'imagesTs')}, labelsTs={cnt(new_root/'labelsTs')}")
+    print(f"  imagesTr={cnt(new_root/'imagesTr')}, labelsTr={cnt(new_root/'labelsTr')}")
 
 if __name__ == "__main__":
     main()
+

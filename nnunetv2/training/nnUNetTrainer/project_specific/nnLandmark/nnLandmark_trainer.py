@@ -389,30 +389,36 @@ class BCE_topK_loss_landmark(nn.Module):
 class MSE_loss(nn.Module):
     def __init__(self):
         super().__init__()
-        self.preallocated_dummy_target: torch.Tensor = None
+        self.preallocated_dummy_target = None
+
+    def _ensure_buffer(self, like: torch.Tensor):
+        if (self.preallocated_dummy_target is None or
+            self.preallocated_dummy_target.shape != like.shape or
+            self.preallocated_dummy_target.device != like.device):
+            # buffer dtype doesn’t matter, we’ll cast for the loss
+            self.preallocated_dummy_target = torch.zeros_like(like, dtype=torch.float32)
 
     def forward(self, net_output, target_structure, bboxes):
-        if (self.preallocated_dummy_target is None or
-            self.preallocated_dummy_target.shape != net_output.shape or
-            self.preallocated_dummy_target.dtype  != net_output.dtype or
-            self.preallocated_dummy_target.device != net_output.device):
-            self.preallocated_dummy_target = torch.zeros_like(net_output)
+        self._ensure_buffer(net_output)
 
         with torch.no_grad():
             self.preallocated_dummy_target.zero_()
             for b in range(net_output.shape[0]):
                 for c in range(net_output.shape[1]):
                     if c + 1 in bboxes[b]:
+                        # ensure src is float32 before pasting (avoid accidental float64 from numpy)
+                        src = target_structure[b].to(torch.float32)
                         paste_tensor_optionalMax(
                             self.preallocated_dummy_target[b, c],
-                            target_structure[b],
-                            bboxes[b][c + 1],
-                            use_max=False
+                            src, bboxes[b][c + 1], use_max=False
                         )
 
-        pred = torch.sigmoid(net_output)  # not F.sigmoid
-        # NOTE: this averages over all voxels (background-dominated)
-        loss = F.mse_loss(pred, self.preallocated_dummy_target)
+        # Compute the loss in fp32, outside autocast
+        # (net_output may be half; we explicitly upcast the math)
+        with torch.cuda.amp.autocast(enabled=False):
+            pred = torch.sigmoid(net_output.float())
+            target = self.preallocated_dummy_target  # already float32
+            loss = F.mse_loss(pred, target)
         return loss
 
 class MSE_topK_loss(nn.Module):
@@ -1322,178 +1328,6 @@ class nnLandmark_v1(nnLandmark_fabi):
         self.initial_lr = 5e-4
         self.grad_clip = 1.
 
-    def get_training_transforms(
-            self, patch_size: Union[np.ndarray, Tuple[int]],
-            rotation_for_DA: RandomScalar,
-            deep_supervision_scales: Union[List, Tuple, None],
-            mirror_axes: Tuple[int, ...],
-            do_dummy_2d_data_aug: bool,
-            use_mask_for_norm: List[bool] = None,
-            is_cascaded: bool = False,
-            foreground_labels: Union[Tuple[int, ...], List[int]] = None,
-            regions: List[Union[List[int], Tuple[int, ...], int]] = None,
-            ignore_label: int = None,
-    ) -> BasicTransform:
-        """
-        Set back to the original nnUNet data augmentation. 
-        """
-        #matching_axes = np.array([sum([i == j for j in patch_size]) for i in patch_size])
-        #valid_axes = list(np.where(matching_axes == np.max(matching_axes))[0])
-        transforms = []
-
-        if do_dummy_2d_data_aug:
-            ignore_axes = (0,)
-            transforms.append(Convert3DTo2DTransform())
-            patch_size_spatial = patch_size[1:]
-        else:
-            patch_size_spatial = patch_size
-            ignore_axes = None
-        transforms.append(
-            SpatialTransform(
-                patch_size_spatial, patch_center_dist_from_border=0, random_crop=False, p_elastic_deform=0,
-                p_rotation=0.2,
-                rotation=rotation_for_DA, p_scaling=0.2, scaling=(0.7, 1.4), p_synchronize_scaling_across_axes=1,
-                bg_style_seg_sampling=False  # , mode_seg='nearest'
-            )
-        )
-
-        if do_dummy_2d_data_aug:
-            transforms.append(Convert2DTo3DTransform())
-
-        transforms.append(RandomTransform(
-            GaussianNoiseTransform(
-                noise_variance=(0, 0.1),
-                p_per_channel=1,
-                synchronize_channels=True
-            ), apply_probability=0.1
-        ))
-        transforms.append(RandomTransform(
-            GaussianBlurTransform(
-                blur_sigma=(0.5, 1.),
-                synchronize_channels=False,
-                synchronize_axes=False,
-                p_per_channel=0.5, benchmark=True
-            ), apply_probability=0.2
-        ))
-        transforms.append(RandomTransform(
-            MultiplicativeBrightnessTransform(
-                multiplier_range=BGContrast((0.75, 1.25)),
-                synchronize_channels=False,
-                p_per_channel=1
-            ), apply_probability=0.15
-        ))
-        transforms.append(RandomTransform(
-            ContrastTransform(
-                contrast_range=BGContrast((0.75, 1.25)),
-                preserve_range=True,
-                synchronize_channels=False,
-                p_per_channel=1
-            ), apply_probability=0.15
-        ))
-        transforms.append(RandomTransform(
-            SimulateLowResolutionTransform(
-                scale=(0.5, 1),
-                synchronize_channels=False,
-                synchronize_axes=True,
-                ignore_axes=ignore_axes,
-                allowed_channels=None,
-                p_per_channel=0.5
-            ), apply_probability=0.25
-        ))
-        transforms.append(RandomTransform(
-            GammaTransform(
-                gamma=BGContrast((0.7, 1.5)),
-                p_invert_image=1,
-                synchronize_channels=False,
-                p_per_channel=1,
-                p_retain_stats=1
-            ), apply_probability=0.1
-        ))
-        transforms.append(RandomTransform(
-            GammaTransform(
-                gamma=BGContrast((0.7, 1.5)),
-                p_invert_image=0,
-                synchronize_channels=False,
-                p_per_channel=1,
-                p_retain_stats=1
-            ), apply_probability=0.3
-        ))
-        if mirror_axes is not None and len(mirror_axes) > 0:
-            transforms.append(
-                MirrorTransform(
-                    allowed_axes=mirror_axes
-                )
-            )
-
-        if use_mask_for_norm is not None and any(use_mask_for_norm):
-            transforms.append(MaskImageTransform(
-                apply_to_channels=[i for i in range(len(use_mask_for_norm)) if use_mask_for_norm[i]],
-                channel_idx_in_seg=0,
-                set_outside_to=0,
-            ))
-
-        transforms.append(
-            RemoveLabelTansform(-1, 0)
-        )
-        if is_cascaded:
-            assert foreground_labels is not None, 'We need foreground_labels for cascade augmentations'
-            transforms.append(
-                MoveSegAsOneHotToDataTransform(
-                    source_channel_idx=1,
-                    all_labels=foreground_labels,
-                    remove_channel_from_source=True
-                )
-            )
-            transforms.append(
-                RandomTransform(
-                    ApplyRandomBinaryOperatorTransform(
-                        channel_idx=list(range(-len(foreground_labels), 0)),
-                        strel_size=(1, 8),
-                        p_per_label=1
-                    ), apply_probability=0.4
-                )
-            )
-            transforms.append(
-                RandomTransform(
-                    RemoveRandomConnectedComponentFromOneHotEncodingTransform(
-                        channel_idx=list(range(-len(foreground_labels), 0)),
-                        fill_with_other_class_p=0,
-                        dont_do_if_covers_more_than_x_percent=0.15,
-                        p_per_label=1
-                    ), apply_probability=0.2
-                )
-            )
-
-        if regions is not None:
-            # the ignore label must also be converted
-            transforms.append(
-                ConvertSegmentationToRegionsTransform(
-                    regions=list(regions) + [ignore_label] if ignore_label is not None else regions,
-                    channel_in_seg=0
-                )
-            )
-
-        transforms.append(ConvertSegToLandmarkTarget(len(self.label_manager.foreground_labels), self.blobb_type,
-                                                        edt_radius=self.blobb_radius))
-
-        transforms = ComposeTransforms(transforms)
-
-        return transforms
-
-    def get_validation_transforms(self,
-                                  deep_supervision_scales: Union[List, Tuple, None],
-                                  is_cascaded: bool = False,
-                                  foreground_labels: Union[Tuple[int, ...], List[int]] = None,
-                                  regions: List[Union[List[int], Tuple[int, ...], int]] = None,
-                                  ignore_label: int = None,
-                                  ) -> BasicTransform:
-        transforms: ComposeTransforms = nnUNetTrainer.get_validation_transforms(deep_supervision_scales, is_cascaded,
-                                                                                foreground_labels, regions,
-                                                                                ignore_label)
-        transforms.transforms.append(ConvertSegToLandmarkTarget(len(self.label_manager.foreground_labels), self.blobb_type,
-                                                        edt_radius=self.blobb_radius))
-        return transforms
-
     def train_step(self, batch: dict) -> dict:
         data = batch['data']
 
@@ -1510,7 +1344,7 @@ class nnLandmark_v1(nnLandmark_fabi):
             # import IPython;IPython.embed()
             # if False:
             #     from batchviewer import view_batch
-            #     view_batch(data[0], target_structure[0][0], F.sigmoid(output[0][0]))
+            #     view_batch(data[0], target[0][0], F.sigmoid(output[0][0]))
 
          # take loss out of autocast! Sigmoid is not stable in fp16
         l = self.loss(output, target_structure, batch['bboxes'])

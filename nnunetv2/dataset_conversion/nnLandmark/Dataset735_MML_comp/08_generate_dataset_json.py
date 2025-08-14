@@ -4,7 +4,7 @@ from batchgenerators.utilities.file_and_folder_operations import join
 from nnunetv2.dataset_conversion.generate_dataset_json import generate_dataset_json
 
 # ------------------------------------------------------------------ paths
-root = Path("/home/a332l/dev/Project_nnLandmark/nnunet_data/nnUNet_raw/Dataset732_Afids")
+root = Path("/home/a332l/dev/Project_nnLandmark/nnunet_data/nnUNet_raw/Dataset735_MML_comp")
 imagesTr = root / "imagesTr"
 imagesTs = root / "imagesTs"
 
@@ -19,10 +19,10 @@ print(f"{len(labels)-1} foreground labels loaded")
 # ------------------------------------------------------------------ write dataset.json
 generate_dataset_json(
     output_folder=root,
-    channel_names=({0: 'MRI'}),           
+    channel_names=({0: 'CT'}),           
     labels=labels,  
     num_training_cases=len(os.listdir(imagesTr)),
-    file_ending=".nii.gz", 
-    dataset_name="Dataset732_Afids",                    # human-readable or task ID
+    file_ending=".nrrd", 
+    dataset_name="735_MML_comp",                    # human-readable or task ID
     license="hands off!"
 )

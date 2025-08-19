@@ -52,8 +52,6 @@ def aggregate_predictions_voxel(pred_dir: Path, label_to_name: dict):
         out[case_id] = case_map
     return out
 
-
-
 def evaluate_MRE(folder_with_pred_jsons: str, gt_json: str):
     """
     IMPORTANT this function only computes the MRE for all landmarks in the GT.

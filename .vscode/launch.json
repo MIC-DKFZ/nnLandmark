@@ -17,8 +17,37 @@
                 "3d_fullres",
                 "0",
                 "-tr",
+                "nnLandmark_v1",
+                //"--val"
+            ]
+        },
+        {
+            "name": "nnUNet predict",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "nnunetv2/inference/nnLandmark/predict_from_raw_data.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "-i",
+                "/home/a332l/dev/Project_nnLandmark/nnunet_data/nnUNet_raw/Dataset732_Afids/imagesTs/",
+                "-o",
+                "/home/a332l/dev/Project_nnLandmark/evaluation/Dataset732_Afids/nnLandmark_v1/prediction/",
+                "-d",
+                "732",
+                "-c",
+                "3d_fullres",
+                "-tr",
                 "nnLandmark_v1"
             ]
+        },
+        {
+            "name": "nnUNet evaluate",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "nnunetv2/evaluation/nnLandmark/evaluate_prediction.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
         }
     ]
 }

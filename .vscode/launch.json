@@ -30,15 +30,17 @@
             "justMyCode": false,
             "args": [
                 "-i",
-                "/home/a332l/dev/Project_nnLandmark/nnunet_data/nnUNet_raw/Dataset732_Afids/imagesTs/",
+                "/home/a332l/dev/Project_nnLandmark/nnunet_data/nnUNet_raw/Dataset734_Fetal_pose/imagesTs/",
                 "-o",
-                "/home/a332l/dev/Project_nnLandmark/evaluation/Dataset732_Afids/nnLandmark_v1/prediction/",
+                "/home/a332l/dev/Project_nnLandmark/evaluation/Dataset734_Fetal_pose/nnLandmark_fabi/prediction/",
                 "-d",
-                "732",
+                "734",
                 "-c",
                 "3d_fullres",
                 "-tr",
-                "nnLandmark_v1"
+                "nnLandmark_fabi",
+                "-f",
+                "0"
             ]
         },
         {
@@ -48,6 +50,14 @@
             "program": "nnunetv2/evaluation/nnLandmark/evaluate_prediction.py",
             "console": "integratedTerminal",
             "justMyCode": false,
+            "args": [
+                "--nnUNet_raw",
+                "/home/a332l/dev/Project_nnLandmark/nnunet_data/nnUNet_raw/",
+                "--dataset_name",
+                "Dataset735_MML_comp",
+                "--predictions",
+                "/home/a332l/dev/Project_nnLandmark/evaluation/Dataset735_MML_comp/test/nnLandmark_fabi/prediction/",
+            ]
         }
     ]
 }

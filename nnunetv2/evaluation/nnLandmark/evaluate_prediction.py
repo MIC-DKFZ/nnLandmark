@@ -1,4 +1,4 @@
-import os
+import os, argparse
 import numpy as np
 from pathlib import Path
 
@@ -166,24 +166,51 @@ def evaluate_MRE_mm(folder_with_pred_jsons: str, gt_json: str, spacing_json: str
     }, join(folder_with_pred_jsons, 'summary_mm.json'), sort_keys=False)
 
 
-nnUNet_raw = "/home/a332l/dev/Project_nnLandmark/nnunet_data/nnUNet_raw/"
-validation_output_folder= "/home/a332l/dev/Project_nnLandmark/evaluation/Dataset732_Afids/nnLandmark_v1/prediction/"
-dataset_name = "Dataset732_Afids"
+def main():
+    parser = argparse.ArgumentParser(description="Evaluate nnLandmark predictions (voxel + mm).")
+    parser.add_argument(
+        "--nnUNet_raw",
+        type=Path,
+        required=True,
+        help="Path to nnUNet_raw folder, e.g. /path/to/nnUNet_raw/"
+    )
+    parser.add_argument(
+        "--dataset_name",
+        type=str,
+        required=True,
+        help="Dataset name (folder under nnUNet_raw), e.g. Dataset732_Afids"
+    )
+    parser.add_argument(
+        "--predictions",
+        type=Path,
+        required=True,
+        help="Path to validation prediction folder"
+    )
+    args = parser.parse_args()
 
-# load jsons 
-name_to_label_path = join(nnUNet_raw, dataset_name, 'name_to_label.json')
-spacing_json_path = join(nnUNet_raw, dataset_name, 'spacing.json')
-n2l = load_json(Path(name_to_label_path))
-label_to_name = {str(v): k for k, v in n2l.items()}
-spacing_by_case = load_spacing_map(Path(spacing_json_path))
-# aggregate voxel prediction
-pred_voxel_by_case = aggregate_predictions_voxel(validation_output_folder, label_to_name)
-save_json(pred_voxel_by_case, os.path.join(validation_output_folder, 'prediction_all_landmark_voxel.json'))
+    dataset_root = args.nnUNet_raw / args.dataset_name
 
-evaluate_MRE(validation_output_folder, join(nnUNet_raw, dataset_name, 'all_landmarks_voxel.json'))
-evaluate_MRE_mm(
-    validation_output_folder,
-    join(nnUNet_raw, dataset_name, 'all_landmarks_voxel.json'),
-    join(nnUNet_raw, dataset_name, 'spacing.json')
-)
+    # load jsons 
+    name_to_label_path = dataset_root / "name_to_label.json"
+    spacing_json_path = dataset_root / "spacing.json"
 
+    n2l = load_json(name_to_label_path)
+    label_to_name = {str(v): k for k, v in n2l.items()}
+    spacing_by_case = load_spacing_map(spacing_json_path)
+
+    # aggregate voxel prediction
+    pred_voxel_by_case = aggregate_predictions_voxel(args.predictions, label_to_name)
+    save_json(pred_voxel_by_case, args.predictions / "prediction_all_landmark_voxel.json")
+
+    # evaluate in voxel space
+    evaluate_MRE(args.predictions, str(dataset_root / "all_landmarks_voxel.json"))
+
+    # evaluate in mm
+    evaluate_MRE_mm(
+        args.predictions,
+        str(dataset_root / "all_landmarks_voxel.json"),
+        str(spacing_json_path)
+    )
+
+if __name__ == "__main__":
+    main()

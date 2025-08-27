@@ -122,6 +122,35 @@ def gaussian_kernel_3d(sigma, truncate=3.0):
     kernel /= kernel.sum()
     return kernel
 
+def gaussian_kernel_2d(sigma, truncate=3.0):
+    """
+    Generate a 2D Gaussian kernel.
+
+    Args:
+        sigma (float or tuple): Standard deviation(s) of the Gaussian.
+                                If scalar → same for both axes.
+        truncate (float): Truncate the filter at this many standard deviations.
+
+    Returns:
+        kernel (np.ndarray): 2D Gaussian kernel, normalized to sum=1.
+    """
+    if isinstance(sigma, (int, float)):
+        sigma = (sigma, sigma)
+
+    # kernel size for each axis (odd for symmetry)
+    size = [int(truncate * s + 0.5) * 2 + 1 for s in sigma]
+
+    y, x = [np.arange(-sz // 2 + 1, sz // 2 + 1) for sz in size]
+    yy, xx = np.meshgrid(y, x, indexing='ij')
+
+    kernel = np.exp(-(xx ** 2 / (2 * sigma[0] ** 2) +
+                      yy ** 2 / (2 * sigma[1] ** 2)))
+    kernel /= kernel.sum()
+
+    # replicate into 3 channels: (3, H, W);
+    kernel_3ch = np.repeat(kernel[None, :, :], 3, axis=0)
+    return kernel_3ch
+
 
 def paste_tensor_optionalMax(target, source, bbox, use_max=False):
     """

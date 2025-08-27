@@ -58,7 +58,7 @@ from nnunetv2.imageio.nibabel_reader_writer import NibabelIOWithReorient
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
 from nnunetv2.paths import nnUNet_raw
 from nnunetv2.training.data_augmentation.compute_initial_patch_size import get_patch_size
-from nnunetv2.training.data_augmentation.kaggle_byu_motor_regression import build_point, gaussian_kernel_3d, \
+from nnunetv2.training.data_augmentation.kaggle_byu_motor_regression import build_point, gaussian_kernel_3d, gaussian_kernel_2d, \
     paste_tensor_optionalMax
 from nnunetv2.training.dataloading.data_loader import nnUNetDataLoader
 from nnunetv2.training.dataloading.nnunet_dataset import infer_dataset_class
@@ -327,8 +327,13 @@ class ConvertSegToLandmarkTarget(BasicTransform):
             else:
                 target = build_point(tuple([self.edt_radius] * 3), use_distance_transform=True, binarize=False)
         else:
-            target = torch.from_numpy(gaussian_kernel_3d(self.gaussian_sigma))
-            target /= target.max()
+            if seg.shape[0] == 1:
+                # 2D image
+                target = torch.from_numpy(gaussian_kernel_2d(self.gaussian_sigma))
+                target /= target.max()
+            else:
+                target = torch.from_numpy(gaussian_kernel_3d(self.gaussian_sigma))
+                target /= target.max()
 
         bboxes = {}
 
@@ -420,12 +425,13 @@ class MSE_loss(nn.Module):
             for b in range(net_output.shape[0]):
                 for c in range(net_output.shape[1]):
                     if c + 1 in bboxes[b]:
-                        # ensure src is float32 before pasting (avoid accidental float64 from numpy)
-                        src = target_structure[b].to(torch.float32)
-                        paste_tensor_optionalMax(
-                            self.preallocated_dummy_target[b, c],
-                            src, bboxes[b][c + 1], use_max=False
-                        )
+                        if len(net_output.shape) == 4:
+                            # 2D
+                            # ensure src is float32 before pasting (avoid accidental float64 from numpy)
+                            paste_tensor_optionalMax(self.preallocated_dummy_target[b, c], target_structure[b][0], bboxes[b][c + 1][1:], use_max=False)
+                        else:
+                            # ensure src is float32 before pasting (avoid accidental float64 from numpy)
+                            paste_tensor_optionalMax(self.preallocated_dummy_target[b, c], target_structure[b], bboxes[b][c + 1], use_max=False)
 
         # Compute the loss in fp32, outside autocast
         # (net_output may be half; we explicitly upcast the math)

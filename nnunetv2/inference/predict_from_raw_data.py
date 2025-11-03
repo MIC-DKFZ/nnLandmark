@@ -584,9 +584,10 @@ class nnUNetPredictor(object):
             # preallocate arrays
             if self.verbose:
                 print(f'preallocating results arrays on device {results_device}')
-            predicted_logits = torch.zeros((self.label_manager.num_segmentation_heads, *data.shape[1:]),
+            predicted_logits = torch.zeros((self.label_manager.num_segmentation_heads-1, *data.shape[1:]),
                                            dtype=torch.half,
                                            device=results_device)
+            print(f"Predicted logits shape: {predicted_logits.shape}")
             n_predictions = torch.zeros(data.shape[1:], dtype=torch.half, device=results_device)
 
             if self.use_gaussian:
@@ -607,6 +608,7 @@ class nnUNetPredictor(object):
                         break
                     workon, sl = item
                     prediction = self._internal_maybe_mirror_and_predict(workon)[0].to(results_device)
+                    print(f"prediction shape: {prediction.shape}")
 
                     if self.use_gaussian:
                         prediction *= gaussian

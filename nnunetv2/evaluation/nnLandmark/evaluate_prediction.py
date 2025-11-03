@@ -108,8 +108,7 @@ def evaluate_MRE(folder_with_pred_jsons: str, gt_json: str):
 
 def evaluate_MRE_mm(folder_with_pred_jsons: str, gt_json: str, spacing_json: str):
     """
-    Computes MRE in millimeters using IMAGE spacing per case.
-    Structure mirrors evaluate_MRE, but distances are scaled by spacing.
+    Computes MRE and stddev in millimeters using IMAGE spacing per case.
     Writes: summary_mm.json
     """
     # same filtering as voxel version to only consider per-case voxel JSONs
@@ -157,14 +156,20 @@ def evaluate_MRE_mm(folder_with_pred_jsons: str, gt_json: str, spacing_json: str
             detailed_results[k][ki_gt] = float(np.round(dist_mm, decimals=5))
             errors[ki_gt].append(dist_mm)
 
+    # Calculate MRE and stddev for each landmark
     mre_by_landmark = {k: np.mean(errors[k]) for k in errors.keys()}
+    stddev_by_landmark = {k: np.std(errors[k]) for k in errors.keys()}
     mre = np.mean(list(mre_by_landmark.values()))
+    stddev = np.mean(list(stddev_by_landmark.values()))
+
+    # Save results to summary_mm.json
     save_json({
         'MRE': float(mre),
+        'stddev': float(stddev),
         'MRE_by_landmark': {i: float(np.round(mre_by_landmark[i], decimals=5)) for i in mre_by_landmark.keys()},
+        'stddev_by_landmark': {i: float(np.round(stddev_by_landmark[i], decimals=5)) for i in stddev_by_landmark.keys()},
         'detailed_results': detailed_results
     }, join(folder_with_pred_jsons, 'summary_mm.json'), sort_keys=False)
-
 
 def main():
     parser = argparse.ArgumentParser(description="Evaluate nnLandmark predictions (voxel + mm).")

@@ -1417,14 +1417,6 @@ class nnLandmark_v1(nnLandmark_fabi):
     
 class nnLandmark_fabi_BiFormerUnet(nnLandmark_fabi):
 
-    def __init__(self, plans: dict, configuration: str, fold: int, dataset_json: dict,
-                 device: torch.device = torch.device('cuda')):
-        super().__init__(plans, configuration, fold, dataset_json, device)
-
-        self.num_epochs=1
-        self.num_iterations_per_epoch=1
-        self.num_val_iterations_per_epoch=1
-
     @staticmethod
     def build_network_architecture(architecture_class_name: str,
                                    arch_init_kwargs: dict,

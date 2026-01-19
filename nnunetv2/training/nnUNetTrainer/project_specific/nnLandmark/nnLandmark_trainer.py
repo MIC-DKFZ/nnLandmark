@@ -1414,8 +1414,76 @@ class nnLandmark_v1(nnLandmark_fabi):
 
         return optimizer, lr_scheduler   
 
+class nnLandmark_fabi_Top10(nnLandmark_fabi):
 
+    def _build_loss(self):
+        loss = BCE_topK_loss_landmark(k=10)
+        assert not self.enable_deep_supervision, 'bruh.'
+        return loss
+    
+class nnLandmark_fabi_Top30(nnLandmark_fabi):
 
+    def _build_loss(self):
+        loss = BCE_topK_loss_landmark(k=30)
+        assert not self.enable_deep_supervision, 'bruh.'
+        return loss
+    
+class nnLandmark_fabi_Top40(nnLandmark_fabi):
+
+    def _build_loss(self):
+        loss = BCE_topK_loss_landmark(k=40)
+        assert not self.enable_deep_supervision, 'bruh.'
+        return loss
+    
+class nnLandmark_fabi_Top50(nnLandmark_fabi):
+
+    def _build_loss(self):
+        loss = BCE_topK_loss_landmark(k=50)
+        assert not self.enable_deep_supervision, 'bruh.'
+        return loss
+    
+class nnLandmark_fabi_Top60(nnLandmark_fabi):
+
+    def _build_loss(self):
+        loss = BCE_topK_loss_landmark(k=60)
+        assert not self.enable_deep_supervision, 'bruh.'
+        return loss
+    
+class nnLandmark_fabi_Top70(nnLandmark_fabi):
+
+    def _build_loss(self):
+        loss = BCE_topK_loss_landmark(k=70)
+        assert not self.enable_deep_supervision, 'bruh.'
+        return loss
+    
+class nnLandmark_fabi_Top80(nnLandmark_fabi):
+
+    def _build_loss(self):
+        loss = BCE_topK_loss_landmark(k=80)
+        assert not self.enable_deep_supervision, 'bruh.'
+        return loss
+    
+class nnLandmark_fabi_Top90(nnLandmark_fabi):
+
+    def _build_loss(self):
+        loss = BCE_topK_loss_landmark(k=90)
+        assert not self.enable_deep_supervision, 'bruh.'
+        return loss
+    
+class nnLandmark_fabi_Top100(nnLandmark_fabi):
+
+    def _build_loss(self):
+        loss = BCE_topK_loss_landmark(k=100)
+        assert not self.enable_deep_supervision, 'bruh.'
+        return loss
+    
+class nnLandmark_fabi_MSE(nnLandmark_fabi):
+
+    def _build_loss(self):
+        loss = MSE_loss()
+        assert not self.enable_deep_supervision, 'bruh.'
+        return loss
+    
 
 # ***********************************************************************************************************
 # ******************************** OTHER METHODS ARCHITECTURES **********************************************

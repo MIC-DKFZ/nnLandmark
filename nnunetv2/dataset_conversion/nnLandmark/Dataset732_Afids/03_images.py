@@ -10,12 +10,12 @@ def main():
     )
     parser.add_argument(
         "--base",
-        default="~/dev/Project_SoftDiceLoss/data/afids-data/data/datasets",
+        default="/path/to/Project_nnLandmark/data/afids-data/data/datasets",
         help="AFIDs datasets root (contains multiple sub-datasets)"
     )
     parser.add_argument(
         "--target",
-        default="/home/a332l/dev/Project_SoftDiceLoss/nnunet_data/nnUNet_raw/Dataset733_Afids/imagesAll/",
+        default="/path/to/Project_nnLandmark/nnunet_data/nnUNet_raw/Dataset732_Afids/imagesAll/",
         help="Target directory to copy renamed images into"
     )
     args = parser.parse_args()

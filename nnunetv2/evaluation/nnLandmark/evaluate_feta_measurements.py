@@ -5,12 +5,10 @@ from pathlib import Path
 from typing import Dict, Tuple
 
 
-
 def load_json(file_path: Path) -> Dict:
     """Load a JSON file."""
     with file_path.open() as f:
         return json.load(f)
-
 
 
 def calculate_euclidean_distance(coord1: Tuple[float, float, float], coord2: Tuple[float, float, float]) -> float:
@@ -18,14 +16,13 @@ def calculate_euclidean_distance(coord1: Tuple[float, float, float], coord2: Tup
     return float(np.sqrt(np.sum((np.array(coord1) - np.array(coord2)) ** 2)))
 
 
-
 def evaluate_measurements(predictions_path: Path, ground_truth_path: Path, spacing_path: Path, output_path: Path):
     """
     Evaluate distances between paired landmarks and compare measurements in mm.
     Args:
         predictions_path: Path to the predictions JSON (in voxel space).
-        ground_truth_path: Path to the ground truth JSON (in voxel space).
-        spacing_path: Path to the spacing JSON.
+        ground_truth_path: Path to the ground truth JSON (in voxel space) in nnUNet_raw.
+        spacing_path: Path to the spacing JSON in nnUNet_raw.
         output_path: Path to save the evaluation results.
     """
     # Load predictions, ground truth, and spacing
@@ -54,8 +51,8 @@ def evaluate_measurements(predictions_path: Path, ground_truth_path: Path, spaci
 
         # Iterate over paired landmarks
         for i in range(1, 100):  # Assuming landmark indices go up to 99
-            landmark_1 = f"landmark_{i}_1"
-            landmark_2 = f"landmark_{i}_2"
+            landmark_1 = f"landmark{i}_1"
+            landmark_2 = f"landmark{i}_2"
             measurement_key = f"{landmark_1}-{landmark_2}"
 
             if landmark_1 in gt_case and landmark_2 in gt_case:
@@ -128,26 +125,26 @@ def main():
     parser.add_argument(
         "--predictions",
         type=Path,
-        default="/home/a332l/Desktop/E132-Projekte/Projects/2024_Ertl_nnLandmark/evaluation/Dataset737_DMGLD_LFC/nnLandmark_fabi/prediction_ResEncM/renamed_landmarks.json",
-        help="Path to the predictions JSON (in voxel space)."
+        required=True,
+        help="/path/to/evaluation/Dataset742_FeTA_2_4/nnLandmark_trainer/prediction/renamed_landmarks.json"
     )
     parser.add_argument(
         "--ground_truth",
         type=Path,
-        default="/home/a332l/Desktop/E132-Projekte/Projects/2024_Ertl_nnLandmark/nnunet_data/nnUNet_raw/Dataset737_DMGLD_LFC/all_landmarks_voxel.json",
-        help="Path to the ground truth JSON (in voxel space)."
+        required=True,
+        help="/path/to/nnunet_data/nnUNet_raw/Dataset742_FeTA_2_4/all_landmarks_voxel.json"
     )
     parser.add_argument(
         "--spacing",
         type=Path,
-        default="/home/a332l/Desktop/E132-Projekte/Projects/2024_Ertl_nnLandmark/nnunet_data/nnUNet_raw/Dataset737_DMGLD_LFC/spacing.json",
-        help="Path to the spacing JSON."
+        required=True,
+        help="/path/to/nnunet_data/nnUNet_raw/Dataset742_FeTA_2_4/spacing.json."
     )
     parser.add_argument(
         "--output",
         type=Path,
-        default="/home/a332l/Desktop/E132-Projekte/Projects/2024_Ertl_nnLandmark/evaluation/Dataset737_DMGLD_LFC/nnLandmark_fabi/prediction_ResEncM/measurement.json",
-        help="Path to save the evaluation results."
+        required=True,
+        help="/path/to/evaluation/Dataset742_FeTA_2_4/nnLandmark_trainer/prediction/measurement.json"
     )
     args = parser.parse_args()
 

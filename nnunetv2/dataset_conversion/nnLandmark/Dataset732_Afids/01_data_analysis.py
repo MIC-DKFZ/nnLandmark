@@ -115,7 +115,7 @@ def scan_afids_dataset(root_path, spacing_tol=0.01):
 
 
 if __name__ == "__main__":
-    root = "/home/a332l/dev/Project_SoftDiceLoss/data/afids-data/data/datasets/"
+    root = "/path/to/data/afids-data/data/datasets/"
     scan_afids_dataset(root, spacing_tol=0.01)
 
 

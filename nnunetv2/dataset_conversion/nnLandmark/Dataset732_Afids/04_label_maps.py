@@ -15,13 +15,13 @@ def draw_cube(seg, center, *, half: int, label: int):
 # ------------------------------------------------------------------ main
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--base",      default="/home/a332l/dev/Project_SoftDiceLoss/data/afids-data/data/datasets/",
+    p.add_argument("--base",      default="/path/to/Project_nnLandmark/data/afids-data/data/datasets/",
                    help="AFIDs datasets root")
-    p.add_argument("--landmarks", default="/home/a332l/dev/Project_SoftDiceLoss/nnunet_data/nnUNet_raw/Dataset733_Afids/afids_all_landmarks.json",
+    p.add_argument("--landmarks", default="/path/to/Project_nnLandmark/nnunet_data/nnUNet_raw/Dataset733_Afids/all_landmarks_voxel.json",
                    help="JSON: case → { landmark_<n>: [i,j,k] }")
-    p.add_argument("--name2label", default="/home/a332l/dev/Project_SoftDiceLoss/nnunet_data/nnUNet_raw/Dataset733_Afids/afids_name_to_label.json",
+    p.add_argument("--name2label", default="/path/to/Project_nnLandmark/nnunet_data/nnUNet_raw/Dataset733_Afids/name_to_label.json",
                    help="JSON: landmark_<n> → int label  (default: derive on the fly)")
-    p.add_argument("--output",    default="/home/a332l/dev/Project_SoftDiceLoss/nnunet_data/nnUNet_raw/Dataset733_Afids/labelsAll/",
+    p.add_argument("--output",    default="/path/to/Project_nnLandmark/nnunet_data/nnUNet_raw/Dataset733_Afids/labelsAll/",
                    help="Destination for the segmentation masks")
     p.add_argument("--half", type=int, default=1,
                    help="Half cube size (default: 1 → 3×3×3)")

@@ -32,13 +32,13 @@ def draw_cube(seg: np.ndarray, center: list[float], *, half: int, label: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--base", default="/home/a332l/dev/Project_SoftDiceLoss/data/mmld_dataset/",
+    ap.add_argument("--base", default="/path/to/Project_nnLandmark/data/mmld_dataset/",
                     help="mmld_dataset root (contains train/val/test)")
-    ap.add_argument("--landmarks", default="/home/a332l/dev/Project_SoftDiceLoss/nnunet_data/nnUNet_raw/Dataset734_MML/all_landmarks_voxel.json",
+    ap.add_argument("--landmarks", default="/path/to/Project_nnLandmark/nnunet_data/nnUNet_raw/Dataset733_MML/all_landmarks_voxel.json",
                     help="case → { landmark_<n>: [i,j,k] }")
-    ap.add_argument("--name2label", default="/home/a332l/dev/Project_SoftDiceLoss/nnunet_data/nnUNet_raw/Dataset734_MML/name_to_label.json",
+    ap.add_argument("--name2label", default="/path/to/Project_nnLandmark/nnunet_data/nnUNet_raw/Dataset733_MML/name_to_label.json",
                     help="landmark_<n> → integer label (order preserved)")
-    ap.add_argument("--output", default="/home/a332l/dev/Project_SoftDiceLoss/nnunet_data/nnUNet_raw/Dataset734_MML/labelsTr/",
+    ap.add_argument("--output", default="/path/to/Project_nnLandmark/nnunet_data/nnUNet_raw/Dataset733_MML/labelsTr/",
                     help="Destination folder for the segmentation maps")
     ap.add_argument("--half", type=int, default=1,
                     help="Half cube size (default 1 → 3×3×3)")

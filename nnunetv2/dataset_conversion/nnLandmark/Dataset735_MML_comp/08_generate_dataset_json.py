@@ -23,6 +23,5 @@ generate_dataset_json(
     labels=labels,  
     num_training_cases=len(os.listdir(imagesTr)),
     file_ending=".nrrd", 
-    dataset_name="735_MML_comp",                    # human-readable or task ID
-    license="hands off!"
+    dataset_name="735_MML_comp",  
 )

@@ -89,7 +89,7 @@ def convert_predicted_logits_to_segmentation_with_correct_shape(predicted_logits
     return segmentation_reverted_cropping, predicted_probabilities
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 1) Replace your extractor with this: returns (coord_tuple_or_None, likelihood)
+#    returns (coord_tuple_or_None, likelihood)
 #    coords are (x, y, z); likelihood is float in [0,1].
 # ──────────────────────────────────────────────────────────────────────────────
 def _extract_landmark_coord_and_likelihood(probs_zyx: np.ndarray,
@@ -129,7 +129,6 @@ def _extract_landmark_coord_and_likelihood(probs_zyx: np.ndarray,
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 2) Keep your convert_* functions as-is. Only tweak JSON writing below.
 #    Assumes `probabilities_final` is (C, Z, Y, X) after all reversals!
 # ──────────────────────────────────────────────────────────────────────────────
 def export_prediction_from_logits(predicted_array_or_file: Union[np.ndarray, torch.Tensor],

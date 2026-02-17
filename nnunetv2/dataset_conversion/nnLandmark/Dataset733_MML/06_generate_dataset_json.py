@@ -4,7 +4,7 @@ from batchgenerators.utilities.file_and_folder_operations import join
 from nnunetv2.dataset_conversion.generate_dataset_json import generate_dataset_json
 
 # ------------------------------------------------------------------ paths
-root = Path("/home/a332l/dev/Project_SoftDiceLoss/nnunet_data/nnUNet_raw/Dataset733_MML")
+root = Path("/path/to/Project_nnLandmark/nnunet_data/nnUNet_raw/Dataset733_MML")
 imagesTr = root / "imagesTr"
 imagesTs = root / "imagesTs"
 

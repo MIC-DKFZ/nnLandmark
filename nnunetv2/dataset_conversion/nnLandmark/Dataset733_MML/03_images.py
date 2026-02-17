@@ -6,9 +6,9 @@ from pathlib import Path
 
 def main():
     parser = argparse.ArgumentParser(description="Copy & rename all NRRD volumes from mmld_dataset into one folder")
-    parser.add_argument("--base", default="~/dev/Project_SoftDiceLoss/data/mmld_dataset",
+    parser.add_argument("--base", default="/path/to/Project_nnLandmark/data/mmld_dataset",
                         help="Base mmld_dataset directory containing train/val/test")
-    parser.add_argument("--target", default="/home/a332l/dev/Project_SoftDiceLoss/nnunet_data/nnUNet_raw/Dataset734_MML/imagesTs/", help="Target directory to copy renamed images into")
+    parser.add_argument("--target", default="/path/to/Project_nnLandmark/nnunet_data/nnUNet_raw/Dataset733_MML/imagesTs/", help="Target directory to copy renamed images into")
     parser.add_argument("--splits", nargs="+", default=["test"],
                         help="Which splits to scan (default: train val test)")
     args = parser.parse_args()

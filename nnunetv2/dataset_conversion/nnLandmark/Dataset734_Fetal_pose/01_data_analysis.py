@@ -21,14 +21,14 @@ def get_nifti_orientation(nifti_file):
 
 def main():
     # ---- Paths ----
-    base_dir = "/home/a332l/dev/Project_SoftDiceLoss/data/landmark_datasets/pose_dataset"
-    vol_dir = Path(base_dir) / "volumes"
-    anno_dir = Path(base_dir) / "landmark_anno"
+    base_dir = "/home/a332l/Desktop/E132-Projekte/Projects/2024_Ertl_nnLandmark/nnunet_data/nnUNet_raw/Dataset738_Fposev2"
+    vol_dir_tr = Path(base_dir) / "imagesTr" 
+    vol_dir_ts = Path(base_dir) / "imagesTs"
+    anno_dir = Path(base_dir) / "landmark_anno_v2"
 
     # ---- Grab both .nii and .nii.gz ----
     volumes = sorted(
-        list(vol_dir.glob("*.nii")) +
-        list(vol_dir.glob("*.nii.gz"))
+        list(vol_dir_tr.glob("*.nii.gz")) + list(vol_dir_ts.glob("*.nii.gz"))
     )
     labels = sorted(anno_dir.glob("*_landmark.json"))
 

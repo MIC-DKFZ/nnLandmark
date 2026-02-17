@@ -74,6 +74,8 @@ from nnunetv2.utilities.helpers import dummy_context, empty_cache
 from nnunetv2.training.nnUNetTrainer.project_specific.nnLandmark.landmark_architectures.BiFormer_Unet import BiFormer_Unet
 # from nnunetv2.training.nnUNetTrainer.project_specific.nnLandmark.landmark_architectures.nnMambaSeg import nnMambaSeg
 
+
+
 # *******************************************************************************************************************************************
 # **************************************************** EVALUATION HELPERS *******************************************************************
 # *******************************************************************************************************************************************
@@ -86,8 +88,6 @@ def evaluate_MRE(folder_with_pred_jsons: str, gt_json: str):
     So this function can only be used for datasets where all landmarks are present in all images!
 
     If this is not the case, a more sophisticated evaluation scheme is needed where we evaluate MRE and a landmark detection metric
-
-    TODO this script currently only considers pixel distances and does not take into account the voxel spacing!
     """
     # folder_with_pred_jsons = '/home/isensee/drives/checkpoints/nnUNet_results/Dataset737_FPOSE/nnLandmark_trainer__nnUNetResEncUNetLPlans__3d_fullres/crossval_predictions'
     # gt_json = '/home/isensee/drives/E132-Rohdaten/nnUNetv2/Dataset737_FPOSE/all_landmarks_voxel.json'
@@ -494,14 +494,12 @@ class MSE_topK_loss(nn.Module):
 
 
 # *******************************************************************************************************************************************
-# ******************************************************** FABIS NN LANDMARK TRAINER ********************************************************
+# ******************************************************** EARLY NN LANDMARK TRAINER ********************************************************
 # *******************************************************************************************************************************************
 
 
-
-
 # This one still has BYU data augmentation
-class nnLandmark_trainer(MotorRegressionTrainer_BCEtopK20Loss_moreDA_3_5kep_EDT25):
+class nnLandmark_trainer_base(MotorRegressionTrainer_BCEtopK20Loss_moreDA_3_5kep_EDT25):
     def __init__(self, plans: dict, configuration: str, fold: int, dataset_json: dict,
                  device: torch.device = torch.device('cuda')):
         super().__init__(plans, configuration, fold, dataset_json, device)
@@ -1147,7 +1145,7 @@ class nnLandmark_trainer(MotorRegressionTrainer_BCEtopK20Loss_moreDA_3_5kep_EDT2
         return mt_gen_train, mt_gen_val
 
 
-class nnLandmark_trainer_edt7(nnLandmark_trainer):
+class nnLandmark_trainer_base_edt7(nnLandmark_trainer_base):
     def __init__(self, plans: dict, configuration: str, fold: int, dataset_json: dict,
                  device: torch.device = torch.device('cuda')):
         super().__init__(plans, configuration, fold, dataset_json, device)
@@ -1157,13 +1155,13 @@ class nnLandmark_trainer_edt7(nnLandmark_trainer):
 
 
 # *****************************************************************************************************************************************
-# ******************************************************** ALEX CHANGED STUFF HERE ********************************************************
+# ************************************************ Trainers for nnLandmark MIDL 2026 Paper ************************************************
 # *****************************************************************************************************************************************
 
 
 
 # Here now set back to original nnUNet DA
-class nnLandmark_fabi(nnLandmark_trainer):
+class nnLandmark(nnLandmark_trainer_base):
     def __init__(self, plans: dict, configuration: str, fold: int, dataset_json: dict,
                  device: torch.device = torch.device('cuda')):
         super().__init__(plans, configuration, fold, dataset_json, device)
@@ -1346,7 +1344,7 @@ class nnLandmark_fabi(nnLandmark_trainer):
         return transforms
 
 
-class nnLandmark_v1(nnLandmark_fabi):
+class nnLandmark_v1(nnLandmark):
     def __init__(self, plans: dict, configuration: str, fold: int, dataset_json: dict,
                  device: torch.device = torch.device('cuda')):
         super().__init__(plans, configuration, fold, dataset_json, device)
@@ -1408,95 +1406,95 @@ class nnLandmark_v1(nnLandmark_fabi):
 
         return optimizer, lr_scheduler   
 
-class nnLandmark_fabi_Top10(nnLandmark_fabi):
+class nnLandmark_Top10(nnLandmark):
 
     def _build_loss(self):
         loss = BCE_topK_loss_landmark(k=10)
         assert not self.enable_deep_supervision, 'bruh.'
         return loss
     
-class nnLandmark_fabi_Top30(nnLandmark_fabi):
+class nnLandmark_Top30(nnLandmark):
 
     def _build_loss(self):
         loss = BCE_topK_loss_landmark(k=30)
         assert not self.enable_deep_supervision, 'bruh.'
         return loss
     
-class nnLandmark_fabi_Top40(nnLandmark_fabi):
+class nnLandmark_Top40(nnLandmark):
 
     def _build_loss(self):
         loss = BCE_topK_loss_landmark(k=40)
         assert not self.enable_deep_supervision, 'bruh.'
         return loss
     
-class nnLandmark_fabi_Top50(nnLandmark_fabi):
+class nnLandmark_Top50(nnLandmark):
 
     def _build_loss(self):
         loss = BCE_topK_loss_landmark(k=50)
         assert not self.enable_deep_supervision, 'bruh.'
         return loss
     
-class nnLandmark_fabi_Top60(nnLandmark_fabi):
+class nnLandmark_Top60(nnLandmark):
 
     def _build_loss(self):
         loss = BCE_topK_loss_landmark(k=60)
         assert not self.enable_deep_supervision, 'bruh.'
         return loss
     
-class nnLandmark_fabi_Top70(nnLandmark_fabi):
+class nnLandmark_Top70(nnLandmark):
 
     def _build_loss(self):
         loss = BCE_topK_loss_landmark(k=70)
         assert not self.enable_deep_supervision, 'bruh.'
         return loss
     
-class nnLandmark_fabi_Top80(nnLandmark_fabi):
+class nnLandmark_Top80(nnLandmark):
 
     def _build_loss(self):
         loss = BCE_topK_loss_landmark(k=80)
         assert not self.enable_deep_supervision, 'bruh.'
         return loss
     
-class nnLandmark_fabi_Top90(nnLandmark_fabi):
+class nnLandmark_Top90(nnLandmark):
 
     def _build_loss(self):
         loss = BCE_topK_loss_landmark(k=90)
         assert not self.enable_deep_supervision, 'bruh.'
         return loss
     
-class nnLandmark_fabi_Top100(nnLandmark_fabi):
+class nnLandmark_Top100(nnLandmark):
 
     def _build_loss(self):
         loss = BCE_topK_loss_landmark(k=100)
         assert not self.enable_deep_supervision, 'bruh.'
         return loss
     
-class nnLandmark_fabi_MSE(nnLandmark_fabi):
+class nnLandmark_MSE(nnLandmark):
 
     def _build_loss(self):
         loss = MSE_loss()
         assert not self.enable_deep_supervision, 'bruh.'
         return loss
     
-class nnLandmark_fabi_edt7(nnLandmark_fabi):
+class nnLandmark_edt7(nnLandmark):
     def __init__(self, plans: dict, configuration: str, fold: int, dataset_json: dict,
                  device: torch.device = torch.device('cuda')):
         super().__init__(plans, configuration, fold, dataset_json, device)
         self.blobb_radius = 7
 
-class nnLandmark_fabi_edt11(nnLandmark_fabi):
+class nnLandmark_edt11(nnLandmark):
     def __init__(self, plans: dict, configuration: str, fold: int, dataset_json: dict,
                  device: torch.device = torch.device('cuda')):
         super().__init__(plans, configuration, fold, dataset_json, device)
         self.blobb_radius = 11
 
-class nnLandmark_fabi_edt19(nnLandmark_fabi):
+class nnLandmark_edt19(nnLandmark):
     def __init__(self, plans: dict, configuration: str, fold: int, dataset_json: dict,
                  device: torch.device = torch.device('cuda')):
         super().__init__(plans, configuration, fold, dataset_json, device)
         self.blobb_radius = 19
 
-class nnLandmark_fabi_edt23(nnLandmark_fabi):
+class nnLandmark_edt23(nnLandmark):
     def __init__(self, plans: dict, configuration: str, fold: int, dataset_json: dict,
                  device: torch.device = torch.device('cuda')):
         super().__init__(plans, configuration, fold, dataset_json, device)
@@ -1508,7 +1506,7 @@ class nnLandmark_fabi_edt23(nnLandmark_fabi):
 # ***********************************************************************************************************
 
 
-class nnLandmark_fabi_BiFormerUnet(nnLandmark_fabi):
+class nnLandmark_BiFormerUnet(nnLandmark):
     '''
     One of nnLandmark baselines. Uses BiFormer_Unet as the network architecture.
     https://arxiv.org/abs/2502.14221
@@ -1543,34 +1541,3 @@ class nnLandmark_fabi_BiFormerUnet(nnLandmark_fabi):
         chances you need to change this as well!
         """
         print("Deep supervision toggle not implemented for BiFormer_Unet. Ignoring.")
-
-
-
-class nnLandmark_fabi_nnMambaSeg(nnLandmark_fabi):
-    '''
-    One of nnLandmark baselines. Uses nnMambaSeg as the network architecture.
-    https://ieeexplore.ieee.org/document/10980694
-    https://github.com/lhaof/nnMamba
-    '''
-    @staticmethod
-    def build_network_architecture(architecture_class_name: str,
-                                   arch_init_kwargs: dict,
-                                   arch_init_kwargs_req_import: Union[List[str], Tuple[str, ...]],
-                                   num_input_channels: int,
-                                   num_output_channels: int,
-                                   enable_deep_supervision: bool = True) -> nn.Module:
-        """
-        Override to return nnMambaSeg instead of nnU-Net default architecture
-
-        """
-        return nnMambaSeg(
-            in_ch=num_input_channels,
-            number_classes=num_output_channels-1,
-        )
-    
-    def set_deep_supervision_enabled(self, enabled: bool):
-        """
-        This function is specific for the default architecture in nnU-Net. If you change the architecture, there are
-        chances you need to change this as well!
-        """
-        print("Deep supervision toggle not implemented for nnMambaSeg. Ignoring.")

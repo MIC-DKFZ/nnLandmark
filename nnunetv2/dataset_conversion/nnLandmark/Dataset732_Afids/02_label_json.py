@@ -74,7 +74,7 @@ def mm_to_voxel(coords_mm: list[list[float]], affine: np.ndarray) -> list[list[f
 # main                                                                     #
 # -------------------------------------------------------------------------#
 def main() -> None:
-    root = Path("/home/a332l/dev/Project_SoftDiceLoss/data/afids-data/data/datasets")
+    root = Path("/path/to/Project_nnLandmark/data/afids-data/data/datasets")
     if not root.exists():
         raise SystemExit(f"Folder not found: {root}")
 
@@ -109,7 +109,7 @@ def main() -> None:
                 "annotation_spacing": None,
             }
 
-    out_root = Path("/home/a332l/dev/Project_SoftDiceLoss/data/afids-data")
+    out_root = Path("/path/to/Project_nnLandmark/nnunet_data/nnUNet_raw/Dataset732_Afids/")
     out_root.mkdir(parents=True, exist_ok=True)
 
     (out_root / "all_landmarks_voxel.json").write_text(

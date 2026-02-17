@@ -175,7 +175,7 @@ def check_landmarks_integrity(split_dir: Path):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Compute spacing/landmark stats for mmld_dataset and print example cases")
-    parser.add_argument("--base", default="~/dev/Project_SoftDiceLoss/data/mmld_dataset", help="Base dataset directory")
+    parser.add_argument("--base", default="/path/to/Project_SoftDiceLoss/data/mmld_dataset", help="Base dataset directory")
     parser.add_argument("--split", choices=["train", "val", "test"], help="Single split to scan")
     parser.add_argument("--tolerance", type=float, default=0.01, help="Rounding/grouping tolerance (mm)")
     args = parser.parse_args(argv)

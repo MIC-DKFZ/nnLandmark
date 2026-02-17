@@ -58,7 +58,7 @@ def rm(p: Path, apply: bool):
 
 def main():
     ap = argparse.ArgumentParser(description="Keep only cases with all 14 landmark labels; remove others from All/Tr/Ts.")
-    ap.add_argument("--root", default="/home/a332l/dev/Project_nnLandmark/nnunet_data/nnUNet_raw/Dataset733_MML_comp/",
+    ap.add_argument("--root", default="/path/to/Project_nnLandmark/nnunet_data/nnUNet_raw/Dataset733_MML_comp/",
                     help="nnUNet_raw dataset root containing imagesVal/labelsVal (+ Tr/Ts)")
     ap.add_argument("--n_labels", type=int, default=14, help="number of required landmark ids (1..n)")
     ap.add_argument("--apply", action="store_true", help="actually delete files (default: dry-run)")

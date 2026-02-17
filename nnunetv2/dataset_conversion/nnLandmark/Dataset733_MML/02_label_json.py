@@ -35,7 +35,7 @@ def spacing_from_header(header):
 # --------------------------------------------------------------------- main
 
 def main():
-    base = Path.home() / "dev" / "Project_SoftDiceLoss" / "data" / "mmld_dataset"
+    base = Path.home() / "dev" / "Project_nnLandmark" / "data" / "mmld_dataset"
     if not base.exists():
         print(f"ERROR: base directory not found: {base}", file=sys.stderr)
         sys.exit(1)
@@ -88,7 +88,7 @@ def main():
             }
 
     # ----------------------------------------------------------------- outputs
-    out_root = "/home/a332l/dev/Project_SoftDiceLoss/nnunet_data/nnUNet_raw/Dataset734_MML/"  # keep JSONs inside dataset folder
+    out_root = Path("/path/to/Project_nnLandmark/nnunet_data/nnUNet_raw/Dataset733_MML/")  # keep JSONs inside dataset folder
     (out_root / "all_landmarks_voxel.json").write_text(
         json.dumps(all_landmarks, indent=2))
 

@@ -1,0 +1,63 @@
+
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "nnUNet training",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "nnunetv2/run/run_training.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "738",
+                "2d",
+                "0",
+                "-tr",
+                "nnLandmark_v1",
+                // "--val"
+            ]
+        },
+        {
+            "name": "nnUNet predict",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "nnunetv2/inference/nnLandmark/predict_from_raw_data.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "-i",
+                "/home/a332l/dev/Project_nnLandmark/nnunet_data/nnUNet_raw/Dataset736_Fetal_face/imagesTs/",
+                "-o",
+                "/home/a332l/dev/Project_nnLandmark/evaluation/Dataset736_Fetal_face/nnLandmark_fabi/prediction/",
+                "-d",
+                "736",
+                "-c",
+                "3d_fullres",
+                "-tr",
+                "nnLandmark_fabi",
+                //"-f",
+                //"0", "1", "2", "3",
+            ]
+        },
+        {
+            "name": "nnUNet evaluate",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "nnunetv2/evaluation/nnLandmark/evaluate_prediction.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--nnUNet_raw",
+                "/home/a332l/dev/Project_nnLandmark/nnunet_data/nnUNet_raw/",
+                "--dataset_name",
+                "Dataset736_Fetal_face",
+                "--predictions",
+                "/home/a332l/dev/Project_nnLandmark/evaluation/Dataset736_Fetal_face/nnLandmark_fabi/prediction/",
+            ]
+        }
+    ]
+}

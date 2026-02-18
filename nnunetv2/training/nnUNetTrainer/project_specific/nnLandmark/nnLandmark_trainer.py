@@ -1505,39 +1505,41 @@ class nnLandmark_edt23(nnLandmark):
 # ******************************** OTHER METHODS ARCHITECTURES **********************************************
 # ***********************************************************************************************************
 
+# We didn't find a license for H3DE-Net repo, so we remove the respective code to integrate this architecture into nnLandmark. 
+# To use the BiFormerUnet, uncomment this trainer and add BiFormerUnet to ./landmark_architectures.
 
-class nnLandmark_BiFormerUnet(nnLandmark):
-    '''
-    One of nnLandmark baselines. Uses BiFormer_Unet as the network architecture.
-    https://arxiv.org/abs/2502.14221
-    https://github.com/ECNUACRush/H3DE-Net
-    '''
-    @staticmethod
-    def build_network_architecture(architecture_class_name: str,
-                                   arch_init_kwargs: dict,
-                                   arch_init_kwargs_req_import: Union[List[str], Tuple[str, ...]],
-                                   num_input_channels: int,
-                                   num_output_channels: int,
-                                   enable_deep_supervision: bool = True) -> nn.Module:
-        """
-        Override to return your BiFormer_Unet instead of nnU-Net default architecture
+# class nnLandmark_BiFormerUnet(nnLandmark):
+#     '''
+#     One of nnLandmark baselines. Uses BiFormer_Unet as the network architecture.
+#     https://arxiv.org/abs/2502.14221
+#     https://github.com/ECNUACRush/H3DE-Net
+#     '''
+#     @staticmethod
+#     def build_network_architecture(architecture_class_name: str,
+#                                    arch_init_kwargs: dict,
+#                                    arch_init_kwargs_req_import: Union[List[str], Tuple[str, ...]],
+#                                    num_input_channels: int,
+#                                    num_output_channels: int,
+#                                    enable_deep_supervision: bool = True) -> nn.Module:
+#         """
+#         Override to return your BiFormer_Unet instead of nnU-Net default architecture
 
-        """
-        # Extract relevant params for BiFormer_Unet (customize as needed)
-        return BiFormer_Unet(
-            n_class=num_output_channels-1,
-            in_chans=num_input_channels,
-            embed_dim=[64, 128, 256, 512],  # adjust based on your plans/patch size
-            depth=[2, 2, 6, 2],             # adjust based on your plans
-            # Add other BiFormer params as needed
-            head_dim=8,
-            layer_scale_init_value=-1,
-            drop_path_rate=0.1,
-        )
+#         """
+#         # Extract relevant params for BiFormer_Unet (customize as needed)
+#         return BiFormer_Unet(
+#             n_class=num_output_channels-1,
+#             in_chans=num_input_channels,
+#             embed_dim=[64, 128, 256, 512],  # adjust based on your plans/patch size
+#             depth=[2, 2, 6, 2],             # adjust based on your plans
+#             # Add other BiFormer params as needed
+#             head_dim=8,
+#             layer_scale_init_value=-1,
+#             drop_path_rate=0.1,
+#         )
     
-    def set_deep_supervision_enabled(self, enabled: bool):
-        """
-        This function is specific for the default architecture in nnU-Net. If you change the architecture, there are
-        chances you need to change this as well!
-        """
-        print("Deep supervision toggle not implemented for BiFormer_Unet. Ignoring.")
+#     def set_deep_supervision_enabled(self, enabled: bool):
+#         """
+#         This function is specific for the default architecture in nnU-Net. If you change the architecture, there are
+#         chances you need to change this as well!
+#         """
+#         print("Deep supervision toggle not implemented for BiFormer_Unet. Ignoring.")

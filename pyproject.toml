@@ -52,7 +52,12 @@ dependencies = [
     "batchgeneratorsv2>=0.3.0",
     "einops",
     "blosc2>=3.0.0b1",
-    "cryoet_data_portal"
+    "cryoet_data_portal",
+    "edt",
+    "connected-components-3d",
+    "Pillow",
+    "ndindex",
+    "threadpoolctl"
 ]
 
 [project.urls]

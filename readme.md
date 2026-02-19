@@ -7,6 +7,8 @@ The repository you see here is a fork of [nnU-Net](https://github.com/MIC-DKFZ/n
 <!-- #### Read the paper: &nbsp; &nbsp;   [![arXiv](https://img.shields.io/badge/arXiv-2404.03010-B31B1B.svg)](https://arxiv.org/abs/2404.03010) -->
 <!-- TODO: add MIDL paper-->
 
+Copyright German Cancer Research Center (DKFZ) and contributors. Please make sure that your usage of this code is in compliance with its license.
+
 ## Installation
 We strongly recommend installing this in a dedicated virtual environment (for example conda).
 We recommend using a Linux based operating system, for example Ubuntu. Windows should work as well but is not tested.

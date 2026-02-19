@@ -14,8 +14,7 @@ We strongly recommend installing this in a dedicated virtual environment (for ex
 We recommend using a Linux based operating system, for example Ubuntu. Windows should work as well but is not tested.
 
 Some dependencies should be installed manually:
-- Install pytorch according to the instructions on the [pytorch website](https://pytorch.org/get-started/locally/). We recommend at least version 2.7. Pick the correct CUDA version for your system. Higher is better.
-- Install batchgeneratorsv2 via `pip install git+https://github.com/MIC-DKFZ/batchgeneratorsv2.git@07541d7eb5a4839aa4a5e494a123f3fe69ccfd4f`
+- Install pytorch according to the instructions on the [pytorch website](https://pytorch.org/get-started/locally/). We recommend version 2.8. Pick the correct CUDA version for your system, we used 12.8.
 
 Now you can just clone this repository and install it:
 

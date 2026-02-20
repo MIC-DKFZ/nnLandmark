@@ -196,17 +196,17 @@ def load_spacing_map(spacing_json_path: str):
     Returns dict: {case_id: [sx, sy, sz]}.
     Accepts:
       {case: [..]}
-      {case: {"spacing":[..]}}
-      {case: {"image_spacing":[..], ...}}  # uses image_spacing
+      {case: {"annotation_spacing":[..], ...}}  # uses annotation_spacing (preferred)
+      {case: {"image_spacing":[..], ...}}        # falls back to image_spacing
     """
     raw = load_json(spacing_json_path)
     out = {}
     for k, v in raw.items():
         if isinstance(v, dict):
-            if "image_spacing" in v and v["image_spacing"] is not None:
-                out[k] = [float(x) for x in v["image_spacing"]]
-            elif "annotation_spacing" in v and v["annotation_spacing"] is not None:
+            if "annotation_spacing" in v and v["annotation_spacing"] is not None:
                 out[k] = [float(x) for x in v["annotation_spacing"]]
+            elif "image_spacing" in v and v["image_spacing"] is not None:
+                out[k] = [float(x) for x in v["image_spacing"]]
             else:
                 raise ValueError(f"Unrecognized dict format for case '{k}': {v}")
         elif isinstance(v, (list, tuple)) and len(v) == 3:

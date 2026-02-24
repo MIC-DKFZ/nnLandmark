@@ -4,8 +4,9 @@ This repository contains the implementation of nnLandmark, a self-configuring fr
 
 The repository you see here is a fork of [nnU-Net](https://github.com/MIC-DKFZ/nnUNet). Please head over there to read more about it.
 
-<!-- #### Read the paper: &nbsp; &nbsp;   [![arXiv](https://img.shields.io/badge/arXiv-2404.03010-B31B1B.svg)](https://arxiv.org/abs/2404.03010) -->
-<!-- TODO: add MIDL paper-->
+🚀 nnLandmark is accepted to MIDL 2026! 
+Find the preprind on arxiv: &nbsp; &nbsp;   [![arXiv](https://img.shields.io/badge/arXiv-2404.03010-B31B1B.svg)](https://arxiv.org/abs/2504.06742)
+
 
 Copyright German Cancer Research Center (DKFZ) and contributors. Please make sure that your usage of this code is in compliance with its license.
 
@@ -181,7 +182,17 @@ This script will create a measurements.py.
 
 If you use this code in your research, please cite our paper:
 
-tbd.
+```bibtex
+@misc{ertl2026nnlandmark,
+      title={nnLandmark: A Self-Configuring Method for 3D Medical Landmark Detection}, 
+      author={Alexandra Ertl and Stefan Denner and Robin Peretzke and Shuhan Xiao and David Zimmerer and Maximilian Fischer and Markus Bujotzek and Xin Yang and Peter Neher and Fabian Isensee and Klaus H. Maier-Hein},
+      year={2026},
+      eprint={2504.06742},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2504.06742}, 
+}
+```
 
 ## Acknowledgements
 <img src="documentation/assets/HI_Logo.png" height="100px" />

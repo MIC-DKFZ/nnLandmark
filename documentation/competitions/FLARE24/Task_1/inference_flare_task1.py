@@ -8,18 +8,18 @@ from time import time
 import torch
 from torch._dynamo import OptimizedModule
 
-from nnunetv2.utilities.label_handling.label_handling import LabelManager
+from nnlandmark.utilities.label_handling.label_handling import LabelManager
 
 from acvl_utils.cropping_and_padding.bounding_boxes import bounding_box_to_slice
 from batchgenerators.utilities.file_and_folder_operations import load_json
 
-import nnunetv2
-from nnunetv2.configuration import default_num_processes
-from nnunetv2.utilities.find_class_by_name import recursive_find_python_class
-from nnunetv2.utilities.label_handling.label_handling import determine_num_input_channels
-from nnunetv2.utilities.plans_handling.plans_handler import PlansManager, ConfigurationManager
-from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
-from nnunetv2.imageio.nibabel_reader_writer import NibabelIOWithReorient
+import nnlandmark
+from nnlandmark.configuration import default_num_processes
+from nnlandmark.utilities.find_class_by_name import recursive_find_python_class
+from nnlandmark.utilities.label_handling.label_handling import determine_num_input_channels
+from nnlandmark.utilities.plans_handling.plans_handler import PlansManager, ConfigurationManager
+from nnlandmark.inference.predict_from_raw_data import nnUNetPredictor
+from nnlandmark.imageio.nibabel_reader_writer import NibabelIOWithReorient
 
 
 class FlarePredictor(nnUNetPredictor):
@@ -55,7 +55,7 @@ class FlarePredictor(nnUNetPredictor):
         configuration_manager = plans_manager.get_configuration(configuration_name)
         # restore network
         num_input_channels = determine_num_input_channels(plans_manager, configuration_manager, dataset_json)
-        trainer_class = recursive_find_python_class(join(nnunetv2.__path__[0], "training", "nnUNetTrainer"),
+        trainer_class = recursive_find_python_class(join(nnlandmark.__path__[0], "training", "nnUNetTrainer"),
                                                     trainer_name, 'nnunetv2.training.nnUNetTrainer')
         if trainer_class is None:
             raise RuntimeError(f'Unable to locate trainer class {trainer_name} in nnunetv2.training.nnUNetTrainer. '

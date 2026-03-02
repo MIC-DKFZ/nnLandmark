@@ -938,6 +938,12 @@ def predict_entry_point():
         "Isensee, F., Jaeger, P. F., Kohl, S. A., Petersen, J., & Maier-Hein, K. H. (2021). "
         "nnU-Net: a self-configuring method for deep learning-based biomedical image segmentation. "
         "Nature methods, 18(2), 203-211.\n#######################################################################\n")
+    
+    print(
+        "\n#######################################################################\nPlease cite the following paper when using nnLandmark:\n"
+        "Ertl, A., Denner, S., Peretzke, R., Xiao, S., Zimmerer, D., Fischer, M., Bujotzek, M., Yang, X., Neher, P., Isensee, F., & Maier-Hein, K. H. (2026). "
+        "nnLandmark: A Self-Configuring Method for 3D Medical Landmark Detection. arXiv:2504.06742. "
+        "https://arxiv.org/abs/2504.06742\n#######################################################################\n")
 
     args = parser.parse_args()
     args.f = [i if i == 'all' else int(i) for i in args.f]

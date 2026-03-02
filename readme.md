@@ -45,8 +45,28 @@ RECOMMENDED: Add these lines to your `.bashrc` file (or whatever you are using) 
 
 ### Additional JSONs
 
-- dataset.json: Just as in nnU-Net.
-- name_to_label.json: Contains all landmark class names as keys and the respective segmentation label values (starting from 1).
+- **dataset.json**: Follows the conventions of nnU-Net. The landmark locations are represented as multi-label segmentation map. Consequently each label corresponds to a specific landmark class. This must be consistent throught the entire dataset and experimentation and is defined in the dataset JSON.
+
+```bash
+{
+    "channel_names": 
+    {
+        "0": "MRI"
+    },
+    "labels": 
+    {
+        "background": 0,
+        "landmark_1": 1,
+        "landmark_2": 2,
+
+    },
+    "numTraining": 110,
+    "file_ending": ".nii.gz",
+    "name": "Dataset732_Afids"
+}
+```
+
+- **name_to_label.json**: Contains all landmark class names as keys and the respective segmentation label values (starting from 1).
 
 ```bash
 {
@@ -55,7 +75,7 @@ RECOMMENDED: Add these lines to your `.bashrc` file (or whatever you are using) 
 }
 ```
 
-- spacing.json: This spacing information is used in the evaluation. For each case it contains a image_spacing, taken from the image metadata, and annotation_spacing, taken from the landmark annotation files. This is because some datasets are published with no/wrong image spacing. nnLandmark defaults to look for image_spacing and, if it's null, falls back to annotation_spacing. 
+- **spacing.json**: This spacing information is used in the evaluation. For each case it contains a image_spacing, taken from the image metadata, and annotation_spacing, taken from the landmark annotation files. This is because some datasets are published with no/wrong image spacing. nnLandmark defaults to look for image_spacing and, if it's null, falls back to annotation_spacing. 
 
 ```bash
 {
@@ -71,7 +91,7 @@ RECOMMENDED: Add these lines to your `.bashrc` file (or whatever you are using) 
 }
 ```
 
-- all_landmarks_voxel.json: Voxel coordinate annotations for all cases (train and test). 
+- **all_landmarks_voxel.json**: Voxel coordinate annotations for all cases (train and test). 
 
 ```bash
 {

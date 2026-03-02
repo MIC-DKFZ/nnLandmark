@@ -48,28 +48,35 @@ RECOMMENDED: Add these lines to your `.bashrc` file (or whatever you are using) 
 - dataset.json: Just as in nnU-Net.
 - name_to_label.json: Contains all landmark class names as keys and the respective segmentation label values (starting from 1).
 
+```bash
 {
   "landmark_1": 1,
   "landmark_2": 2,
 }
+```
 
 - spacing.json: This spacing information is used in the evaluation. For each case it contains a image_spacing, taken from the image metadata, and annotation_spacing, taken from the landmark annotation files. This is because some datasets are published with no/wrong image spacing. nnLandmark defaults to look for image_spacing and, if it's null, falls back to annotation_spacing. 
 
+```bash
 {
-  "case_xyz": {
+  "case_xyz": 
+  {
     "image_spacing": [
       0.5,
       0.5,
       0.5
     ],
     "annotation_spacing": null
-  },
+  }
 }
+```
 
 - all_landmarks_voxel.json: Voxel coordinate annotations for all cases (train and test). 
 
+```bash
 {
-  "case_xyz": {
+  "case_xyz": 
+  {
     "landmark_1": [
       13,
       19,
@@ -82,6 +89,7 @@ RECOMMENDED: Add these lines to your `.bashrc` file (or whatever you are using) 
     ],
   }
 }
+```
 
 ### Public Dataset Conversion Scripts
 
@@ -123,7 +131,6 @@ nnLM_train \
     DATASET_NAME_OR_ID \
     3d_fullres \
     FOLD \
-    --tr nnLandmark \
     -p nnUNetResEncUNetMPlans
 ```
 
@@ -133,7 +140,7 @@ nnLM_train \
 Use the costum nnLandmark predict script to predict a raw image folder. For using the ResEncM architecture plans, add the respective flag:
 
 ```bash
-python nnlandmark/inference/nnLandmark/predict_from_raw_data.py \
+nnLM_predict \
     -i /path/to/nnUNet_raw/DATASET_ID/imagesTs/ \
     -o /path/to/evaluation/DATASET_ID/predictions/ \
     -d DATASET_ID \
@@ -153,9 +160,9 @@ This scrip will create:
 Use the custom nnLandmark evaluation script:
 
 ```bash
-python nnlandmark/evaluation/nnLandmark/evaluate_prediction.py \
-    --dataset DATASET_ID \
-    --predictions /path/to/evaluation/DATASET_ID/predictions/
+nnLM_evaluate \
+    -d DATASET_ID \
+    -pred /path/to/evaluation/DATASET_ID/predictions/
 ```
 
 This script will create:

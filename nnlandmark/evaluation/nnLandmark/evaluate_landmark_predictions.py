@@ -5,6 +5,7 @@ from pathlib import Path
 from batchgenerators.utilities.file_and_folder_operations import join, maybe_mkdir_p, save_json, subfiles
 
 from nnlandmark.dataset_conversion.Dataset119_ToothFairy2_All import load_json
+from nnlandmark.utilities.dataset_name_id_conversion import maybe_convert_to_dataset_name
 
 def load_spacing_map(spacing_json_path: str):
     """
@@ -374,13 +375,13 @@ def evaluate_MRE_mm_from_aggregated(folder_with_pred_jsons: str, gt_json: str, s
 def evaluate_entry_point():
     parser = argparse.ArgumentParser(description="Evaluate nnLandmark predictions (voxel + mm).")
     parser.add_argument(
-        "--dataset",
-        type=str,
+        "-d",
+        type=int,
         required=True,
-        help="Dataset name (folder under nnLandmark_raw), e.g. Dataset732_Afids"
+        help="Dataset ID, e.g. 732"
     )
     parser.add_argument(
-        "--predictions",
+        "-pred",
         type=Path,
         required=True,
         help="Path to validation prediction folder"
@@ -390,7 +391,8 @@ def evaluate_entry_point():
     nnLandmark_raw = os.environ.get("nnLM_raw")
     if nnLandmark_raw is None:
         raise EnvironmentError("Environment variable 'nnLM_raw' is not set.")
-    dataset_root = Path(nnLandmark_raw) / args.dataset
+    dataset_name = maybe_convert_to_dataset_name(args.d)
+    dataset_root = Path(nnLandmark_raw) / dataset_name
 
     # load jsons 
     name_to_label_path = dataset_root / "name_to_label.json"
@@ -400,15 +402,15 @@ def evaluate_entry_point():
     label_to_name = {str(v): k for k, v in n2l.items()}
 
     # aggregate voxel prediction
-    pred_voxel_by_case = aggregate_predictions_voxel(args.predictions, label_to_name)
-    save_json(pred_voxel_by_case, args.predictions / "prediction_all_landmark_voxel.json")
+    pred_voxel_by_case = aggregate_predictions_voxel(args.pred, label_to_name)
+    save_json(pred_voxel_by_case, args.pred / "prediction_all_landmark_voxel.json")
 
     # evaluate in voxel space
-    evaluate_MRE_from_aggregated(args.predictions, str(dataset_root / "all_landmarks_voxel.json"))
+    evaluate_MRE_from_aggregated(args.pred, str(dataset_root / "all_landmarks_voxel.json"))
 
     # evaluate in mm
     evaluate_MRE_mm_from_aggregated(
-        args.predictions,
+        args.pred,
         str(dataset_root / "all_landmarks_voxel.json"),
         str(spacing_json_path)
     )

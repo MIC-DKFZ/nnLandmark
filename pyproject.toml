@@ -1,6 +1,6 @@
 [project]
 name = "nnlandmark"
-version = "2.6.2"
+version = "0.1.0"
 requires-python = ">=3.10"
 description = "nnLandmark is a self-configuring framerwork for 3D medical landmark detection. It is a fork of nnU-Net 2.6.2."
 readme = "readme.md"

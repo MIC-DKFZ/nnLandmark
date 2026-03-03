@@ -95,9 +95,10 @@ def evaluate_MRE(folder_with_pred_jsons: str, gt_json: str):
                                 'prediction_all_landmark_voxel.json', 'prediction_all_landmark_mm.json')
                    and not i.endswith('_mm.json')]
     # we always predict something for all landmarks, so we can infer how many landmarks there are from any model output json
-    name_label_dict = load_json(os.path.join(os.path.dirname(gt_json), 'name_to_label.json'))
-    all_landmarks = name_label_dict.keys() # [int(i) for i in load_json(join(folder_with_pred_jsons, predicted_jsons[0])).keys()]
-    
+    dataset_json = load_json(os.path.join(os.path.dirname(gt_json), 'dataset.json'))
+    name_label_dict = {k: v for k, v in dataset_json['labels'].items() if k != 'background'}
+    all_landmarks = name_label_dict.keys()
+
     gt = load_json(gt_json)
     
     predicted_identifiers = [i[:-5] for i in predicted_jsons]
@@ -143,7 +144,8 @@ def evaluate_MRE_mm(folder_with_pred_jsons: str, gt_json: str, spacing_json: str
                                     'prediction_all_landmark_voxel.json', 'prediction_all_landmark_mm.json')
                        and not i.endswith('_mm.json')]
 
-    name_label_dict = load_json(os.path.join(os.path.dirname(gt_json), 'name_to_label.json'))
+    dataset_json = load_json(os.path.join(os.path.dirname(gt_json), 'dataset.json'))
+    name_label_dict = {k: v for k, v in dataset_json['labels'].items() if k != 'background'}
     all_landmarks = name_label_dict.keys()
 
     gt = load_json(gt_json)
@@ -990,9 +992,10 @@ class nnLandmark_trainer_base(MotorRegressionTrainer_BCEtopK20Loss_moreDA_3_5kep
         # save collection jsons in voxel and mm
 
         # load jsons 
-        name_to_label_path = join(nnLM_raw, self.plans_manager.dataset_name, 'name_to_label.json')
+        dataset_json_path = join(nnLM_raw, self.plans_manager.dataset_name, 'dataset.json')
         spacing_json_path = join(nnLM_raw, self.plans_manager.dataset_name, 'spacing.json')
-        n2l = load_json(Path(name_to_label_path))
+        dataset_json = load_json(Path(dataset_json_path))
+        n2l = {k: v for k, v in dataset_json['labels'].items() if k != 'background'}
         label_to_name = {str(v): k for k, v in n2l.items()}
         spacing_by_case = load_spacing_map(Path(spacing_json_path))
         # aggregate voxel prediction

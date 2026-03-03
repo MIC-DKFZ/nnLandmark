@@ -40,6 +40,12 @@ def load_jpgs(folder: str):
 
 def convert_coordinates(coordinates_in_original, original_shape, new_shape):
     new_coords = []
+    if original_shape[0] == 1:
+        # 2D
+        original_shape = original_shape[1:]
+        new_shape = new_shape[1:]
+        coordinates_in_original = [sublist[1:] for sublist in coordinates_in_original]
+
     for ci in coordinates_in_original:
         new_coords.append([round(c * (n - 1) / (o - 1)) for c, n, o in zip(ci, new_shape, original_shape)])
     return new_coords

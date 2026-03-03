@@ -154,68 +154,73 @@ def gaussian_kernel_2d(sigma, truncate=3.0):
 
 def paste_tensor_optionalMax(target, source, bbox, use_max=False):
     """
-    Paste or combine a source tensor/array into a target tensor/array using a given bounding box,
-    with optional pixelwise maximum.
+    Safely paste `source` into `target` using a bounding box `bbox`.
+    Automatically clips if the bbox goes outside the target.
 
-    Supports both NumPy arrays and PyTorch tensors. Output type matches input target type.
+    Supports:
+        - 2D: H x W
+        - 2D with channel: 1 x H x W
+        - 3D: D x H x W
+        - 3D with channel: 1 x D x H x W
 
     Args:
-        target (np.ndarray or torch.Tensor): 3D volume.
-        source (np.ndarray or torch.Tensor): 3D volume (same shape as bbox region).
-        bbox (list or tuple): Bounding box as [[x1, x2], [y1, y2], [z1, z2]]
-        use_max (bool): If True, combine using pixelwise max instead of direct paste.
-
-    Returns:
-        Same type as `target`: Modified 3D volume.
+        target: np.ndarray or torch.Tensor
+        source: same type as target
+        bbox: list of [start, end] per dimension
+        use_max: bool, whether to combine using max instead of overwriting
     """
+    import numpy as np
+    import torch
+
     is_numpy = isinstance(target, np.ndarray)
     xp = np if is_numpy else torch
 
     target_shape = target.shape
-    target_indices = []
-    source_indices = []
+    ndim = len(bbox)
+
+    # Detect if first dimension is channel=1
+    has_channel = target.ndim == ndim + 1 and target.shape[0] == 1
+
+    target_slices = []
+    source_slices = []
 
     for i, (b0, b1) in enumerate(bbox):
         t_start = max(b0, 0)
-        t_end = min(b1, target_shape[i])
+        t_end = min(b1, target_shape[i + (1 if has_channel else 0)])
         if t_start >= t_end:
-            return target  # No overlap
+            # No overlap in this dim -> skip
+            return target
 
         s_start = t_start - b0
         s_end = s_start + (t_end - t_start)
 
-        target_indices.append((t_start, t_end))
-        source_indices.append((s_start, s_end))
+        # Always use slice objects
+        target_slices.append(slice(t_start, t_end))
+        source_slices.append(slice(s_start, s_end))
 
-    tz0, tz1 = target_indices[0]
-    ty0, ty1 = target_indices[1]
-    if len(target_shape) == 2:
-        #2D
-        pass
-    else:
-        tx0, tx1 = target_indices[2]
+    if has_channel:
+        target_slices = [slice(0, 1)] + target_slices
+        source_slices = [slice(0, 1)] + source_slices
 
-    sz0, sz1 = source_indices[0]
-    sy0, sy1 = source_indices[1]
-    if len(target_shape) == 2:
-        #2D
-        pass
-    else:
-        sx0, sx1 = source_indices[2]
+    t_slice = tuple(target_slices)
+    s_slice = tuple(source_slices)
 
+    # Compute shapes safely
+    shape_target = [t.stop - t.start for t in target_slices]
+    shape_source = [s.stop - s.start for s in source_slices]
+
+    # Skip if any dimension has zero length
+    if any(st <= 0 for st in shape_target) or any(ss <= 0 for ss in shape_source):
+        return target
+
+    # Paste or max
     if use_max:
-        target[tz0:tz1, ty0:ty1, tx0:tx1] = xp.maximum(
-            target[tz0:tz1, ty0:ty1, tx0:tx1],
-            source[sz0:sz1, sy0:sy1, sx0:sx1]
-        )
+        target[t_slice] = xp.maximum(target[t_slice], source[s_slice])
     else:
-        if len(target_shape) == 2:
-            #2D
-            target[tz0:tz1, ty0:ty1] = source[sz0:sz1, sy0:sy1]
-        else:
-            target[tz0:tz1, ty0:ty1, tx0:tx1] = source[sz0:sz1, sy0:sy1, sx0:sx1]
+        target[t_slice] = source[s_slice]
 
     return target
+
 
 
 if __name__ == '__main__':

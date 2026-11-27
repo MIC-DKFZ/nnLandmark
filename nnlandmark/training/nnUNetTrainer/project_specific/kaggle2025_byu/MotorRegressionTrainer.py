@@ -326,7 +326,7 @@ class MotorRegressionTrainer(nnUNetTrainer):
                 detected_coords = torch.argwhere(detections)
                 # print('done')
 
-                det_p = [prediction[*i].item() for i in detected_coords]
+                det_p = [prediction[tuple(i)].item() for i in detected_coords]
                 detected_coords = [[i.item() for i in j] for j in detected_coords]
 
                 # convert coords to original

@@ -902,7 +902,7 @@ class nnLandmark_trainer_base(MotorRegressionTrainer_BCEtopK20Loss_moreDA_3_5kep
                     detected_coords = [torch.argwhere(prediction[c] == mx[c])[0] for c in range(len(mx))]
                     empty_cache(self.device)
 
-                det_p = [prediction[j][*i].item() for j, i in enumerate(detected_coords)]
+                det_p = [prediction[j][tuple(i)].item() for j, i in enumerate(detected_coords)]
                 detected_coords = [[i.item() for i in j] for j in detected_coords]
 
                 # convert coords to original geometry

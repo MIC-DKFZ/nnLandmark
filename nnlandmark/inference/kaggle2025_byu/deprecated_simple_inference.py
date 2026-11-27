@@ -84,7 +84,7 @@ if __name__ == '__main__':
                     detections = (smooth_pred == mp) & (out > THRESHOLD)
                     detected_coords = torch.argwhere(detections)
 
-                    det_p = [out[*i].item() for i in detected_coords]
+                    det_p = [out[tuple(i)].item() for i in detected_coords]
                     detected_coords = [[i.item() for i in j] for j in detected_coords]
 
                     if len(detected_coords) == 0:

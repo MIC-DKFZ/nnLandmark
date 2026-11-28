@@ -52,7 +52,7 @@ from nnlandmark.paths import nnLM_preprocessed, nnLM_results
 from nnlandmark.training.data_augmentation.compute_initial_patch_size import get_patch_size
 from nnlandmark.training.dataloading.nnunet_dataset import infer_dataset_class
 from nnlandmark.training.dataloading.data_loader import nnUNetDataLoader
-from nnlandmark.training.logging.nnunet_logger import nnUNetLogger
+from nnlandmark.training.logging.nnunet_logger import MetaLogger
 from nnlandmark.training.loss.compound_losses import DC_and_CE_loss, DC_and_BCE_loss
 from nnlandmark.training.loss.deep_supervision import DeepSupervisionWrapper
 from nnlandmark.training.loss.dice import get_tp_fp_fn_tn, MemoryEfficientSoftDiceLoss
@@ -171,7 +171,7 @@ class nnUNetTrainer(object):
         self.log_file = join(self.output_folder, "training_log_%d_%d_%d_%02.0d_%02.0d_%02.0d.txt" %
                              (timestamp.year, timestamp.month, timestamp.day, timestamp.hour, timestamp.minute,
                               timestamp.second))
-        self.logger = nnUNetLogger()
+        self.logger = MetaLogger()
 
         ### placeholders
         self.dataloader_train = self.dataloader_val = None  # see on_train_start
@@ -931,8 +931,33 @@ class nnUNetTrainer(object):
 
         self._save_debug_information()
 
+        # optional remote logging (W&B); --c loaded a checkpoint -> continue the fold's run
+        self._start_remote_logging(resume=self.current_epoch > 0)
+
         # print(f"batch size: {self.batch_size}")
         # print(f"oversample: {self.oversample_foreground_percent}")
+
+    def _start_remote_logging(self, resume: bool):
+        """Open the optional remote loggers (W&B, see readme.md "Optional: Weights & Biases logging") on rank 0.
+        No-op if they are disabled or already open."""
+        if self.local_rank != 0 or len(self.logger.loggers) > 0:
+            return
+        self.logger.start(self.output_folder, resume)
+        self.logger.update_config({
+            "plans": self.plans_manager.plans, "configuration": self.configuration_name, "fold": self.fold,
+            "dataset": self.dataset_json, "trainer": self.__class__.__name__,
+            "hparas": {
+                "initial_lr": self.initial_lr,
+                "weight_decay": self.weight_decay,
+                "oversample_foreground_percent": self.oversample_foreground_percent,
+                "probabilistic_oversampling": self.probabilistic_oversampling,
+                "num_iterations_per_epoch": self.num_iterations_per_epoch,
+                "num_val_iterations_per_epoch": self.num_val_iterations_per_epoch,
+                "num_epochs": self.num_epochs,
+                "enable_deep_supervision": self.enable_deep_supervision,
+                "batch_size": self.configuration_manager.batch_size,
+            },
+        })
 
     def on_train_end(self):
         # dirty hack because on_epoch_end increments the epoch counter and this is executed afterwards.
@@ -1355,6 +1380,10 @@ class nnUNetTrainer(object):
             self.print_to_log_file("Validation complete", also_print_to_console=True)
             self.print_to_log_file("Mean Validation Dice: ", (metrics['foreground_mean']["Dice"]),
                                    also_print_to_console=True)
+            self._start_remote_logging(resume=True)  # --val: reopen the fold's run
+            for label in metrics["mean"]:
+                self.logger.log_summary(f"final_val/class_{label}_dice", metrics["mean"][label]["Dice"])
+            self.logger.log_summary("final_val/foreground_dice", metrics['foreground_mean']["Dice"])
 
         self.set_deep_supervision_enabled(True)
         compute_gaussian.cache_clear()

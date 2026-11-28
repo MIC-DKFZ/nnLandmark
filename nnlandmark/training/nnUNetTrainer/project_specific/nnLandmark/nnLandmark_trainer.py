@@ -1013,6 +1013,16 @@ class nnLandmark_trainer_base(MotorRegressionTrainer_BCEtopK20Loss_moreDA_3_5kep
             join(nnLM_raw, self.plans_manager.dataset_name, 'spacing.json')
         )
 
+        # final validation metrics to the optional remote loggers (W&B); --val reopens the fold's run
+        if self.local_rank == 0:
+            self._start_remote_logging(resume=True)
+            summary_voxel = load_json(join(validation_output_folder, 'summary_voxel.json'))
+            summary_mm = load_json(join(validation_output_folder, 'summary_mm.json'))
+            self.logger.log_summary('final_val/MRE_voxel', float(summary_voxel['MRE']))
+            self.logger.log_summary('final_val/MRE_mm', float(summary_mm['MRE']))
+            for name, mre in summary_mm['MRE_by_landmark'].items():
+                self.logger.log_summary(f'final_val/MRE_mm/{name}', mre)
+
     def train_step(self, batch: dict) -> dict:
         data = batch['data']
 

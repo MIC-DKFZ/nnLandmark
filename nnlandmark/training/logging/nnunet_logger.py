@@ -1,3 +1,7 @@
+import os
+from pathlib import Path
+from typing import Any
+
 import matplotlib
 from batchgenerators.utilities.file_and_folder_operations import join
 
@@ -6,7 +10,103 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 
-class nnUNetLogger(object):
+def get_cluster_job_id():
+    job_id = None
+    if "LSB_JOBID" in os.environ:
+        job_id = os.environ["LSB_JOBID"]
+    if "SLURM_JOB_ID" in os.environ:
+        job_id = os.environ["SLURM_JOB_ID"]
+    return job_id
+
+
+def _is_logger_enabled(env_var: str) -> bool:
+    env_var_result = str(os.getenv(env_var, "0"))
+    if env_var_result in ("0", "False", "false"):
+        return False
+    elif env_var_result in ("1", "True", "true"):
+        return True
+    else:
+        raise RuntimeError(f"{env_var} has the wrong value. Must be '0' (disabled) or '1' (enabled).")
+
+
+class MetaLogger(object):
+    """Bundles the local logger and optional remote loggers (W&B) behind one interface, like nnU-Net's MetaLogger.
+
+    The local logger is always active: it holds the values used for plotting, checkpointing and best-checkpoint
+    selection. Remote loggers are only created by start(), which the trainer calls on rank 0 when training (or a
+    validation-only run) actually begins, so building a trainer object never opens a remote run.
+    """
+
+    def __init__(self, verbose: bool = False):
+        self.local_logger = LocalLogger(verbose)
+        self.loggers = []
+
+    def start(self, output_folder: str, resume: bool):
+        """Create the enabled remote loggers (no-op if they already exist or none is enabled).
+
+        Args:
+            output_folder: fold output folder, remote logger files are stored there.
+            resume: continue the previous remote run of this fold if there is one (--c, --val).
+        """
+        if len(self.loggers) == 0 and _is_logger_enabled("nnLM_wandb_enabled"):
+            self.loggers.append(WandbLogger(output_folder, resume))
+
+    def finish(self):
+        """Close the remote loggers. Safe to call when none is active."""
+        for logger in self.loggers:
+            logger.finish()
+        self.loggers = []
+
+    def update_config(self, config: dict):
+        for logger in self.loggers:
+            logger.update_config(config)
+
+    def log(self, key: str, value: Any, step: int):
+        self.local_logger.log(key, value, step)
+        if isinstance(value, (list, tuple)):
+            for i, val in enumerate(value):
+                for logger in self.loggers:
+                    logger.log(f"{key}/class_{i + 1}", val, step)
+        else:
+            for logger in self.loggers:
+                logger.log(key, value, step)
+
+        if key == 'epoch_end_timestamps' and len(self.loggers) > 0:
+            start = self.local_logger.my_fantastic_logging['epoch_start_timestamps']
+            if len(start) > step:
+                for logger in self.loggers:
+                    logger.log('epoch_time', value - start[step], step)
+
+        # handle the ema_fg_dice special case! It is automatically logged when we add a new mean_fg_dice
+        if key == 'mean_fg_dice':
+            ema = self.local_logger.my_fantastic_logging['ema_fg_dice']
+            new_ema_pseudo_dice = ema[step - 1] * 0.9 + 0.1 * value if len(ema) > 0 else value
+            self.log('ema_fg_dice', new_ema_pseudo_dice, step)
+
+    def log_summary(self, key: str, value: Any):
+        """Values logged once, e.g. final validation metrics."""
+        for logger in self.loggers:
+            logger.log_summary(key, value)
+
+    def get_value(self, key: str, step: Any):
+        return self.local_logger.get_value(key, step)
+
+    @property
+    def my_fantastic_logging(self):
+        # trainers read the logged lists directly
+        return self.local_logger.my_fantastic_logging
+
+    def plot_progress_png(self, output_folder: str):
+        self.local_logger.plot_progress_png(output_folder)
+
+    def get_checkpoint(self):
+        return self.local_logger.get_checkpoint()
+
+    def load_checkpoint(self, checkpoint: dict):
+        self.local_logger.load_checkpoint(checkpoint)
+
+
+class LocalLogger(object):
     """
     This class is really trivial. Don't expect cool functionality here. This is my makeshift solution to problems
     arising from out-of-sync epoch numbers and numbers of logged loss values. It also simplifies the trainer class a
@@ -45,11 +145,11 @@ class nnUNetLogger(object):
             print(f'maybe some logging issue!? logging {key} and {value}')
             self.my_fantastic_logging[key][epoch] = value
 
-        # handle the ema_fg_dice special case! It is automatically logged when we add a new mean_fg_dice
-        if key == 'mean_fg_dice':
-            new_ema_pseudo_dice = self.my_fantastic_logging['ema_fg_dice'][epoch - 1] * 0.9 + 0.1 * value \
-                if len(self.my_fantastic_logging['ema_fg_dice']) > 0 else value
-            self.log('ema_fg_dice', new_ema_pseudo_dice, epoch)
+    def get_value(self, key, step):
+        if step is not None:
+            return self.my_fantastic_logging[key][step]
+        else:
+            return self.my_fantastic_logging[key]
 
     def plot_progress_png(self, output_folder):
         # we infer the epoch form our internal logging
@@ -101,3 +201,60 @@ class nnUNetLogger(object):
 
     def load_checkpoint(self, checkpoint: dict):
         self.my_fantastic_logging = checkpoint
+
+
+# backwards compatibility: nnUNetLogger(verbose) keeps working, with the same behaviour as before when W&B is off
+nnUNetLogger = MetaLogger
+
+
+class WandbLogger:
+    """Weights & Biases logger (optional, `pip install wandb`).
+
+    Environment variables:
+        nnLM_wandb_enabled: 1 to enable (default 0)
+        nnLM_wandb_project: W&B project (default "nnlandmark")
+        nnLM_wandb_mode:    "online" or "offline" (default "online"); offline runs are written to
+                            <fold folder>/wandb and can be uploaded later with `wandb sync`
+    Standard W&B variables (WANDB_ENTITY, WANDB_API_KEY, ...) work as usual.
+    """
+
+    def __init__(self, output_folder, resume):
+        try:
+            import wandb  # imported here so that nothing is imported when W&B logging is off
+        except ImportError:
+            raise RuntimeError("nnLM_wandb_enabled=1 but W&B is not installed. Install it with 'pip install wandb' "
+                               "or unset nnLM_wandb_enabled.")
+
+        self.output_folder = Path(output_folder)
+        self.resume = resume
+        self.project = os.getenv("nnLM_wandb_project", "nnlandmark")
+        self.mode = os.getenv("nnLM_wandb_mode", "online")
+
+        # continue the fold's last run (its id is in the name of the run-<id>.wandb file); a new training gets a
+        # new run and the old run files are kept
+        wandb_id = None
+        latest = self.output_folder / "wandb" / "latest-run"
+        if self.resume and latest.is_dir():
+            wandb_id = next((f.stem[4:] for f in latest.iterdir() if f.suffix == ".wandb"), None)
+
+        self.run = wandb.init(project=self.project, dir=str(self.output_folder), id=wandb_id, mode=self.mode,
+                              resume="allow" if wandb_id is not None else "never")
+        self.run.config.update({"JobID": get_cluster_job_id()}, allow_val_change=True)
+        self.wandb_init_step = self.run.step
+
+    def update_config(self, config: dict):
+        self.run.config.update(config, allow_val_change=True)
+
+    def log(self, key, value, step: int):
+        self.log_summary("current_epoch", step)
+        # after resuming from checkpoint_latest the epochs since that checkpoint are trained again; W&B already
+        # has them and does not accept steps lower than its current step
+        if self.resume and step < self.wandb_init_step:
+            return
+        self.run.log({key: value}, step=step)
+
+    def log_summary(self, key, value):
+        self.run.summary[key] = value
+
+    def finish(self):
+        self.run.finish()

@@ -87,6 +87,9 @@ dev = [
     "ruff",
     "pre-commit"
 ]
+wandb = [
+    "wandb"
+]
 
 [tool.setuptools.packages.find]
 include = ["nnlandmark*"]

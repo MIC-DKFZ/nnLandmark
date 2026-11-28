@@ -145,6 +145,22 @@ nnLM_train \
     -p nnUNetResEncUNetMPlans
 ```
 
+### Optional: Weights & Biases logging
+Training curves (losses, pseudo dice, learning rate, epoch time) and the final validation MRE can be logged to
+[Weights & Biases](https://wandb.ai). It is off by default. Install `wandb` (`pip install wandb`, or
+`pip install -e ".[wandb]"`) and set:
+
+```bash
+export nnLM_wandb_enabled=1          # default 0 (off)
+export nnLM_wandb_project=nnlandmark # default "nnlandmark"
+export nnLM_wandb_mode=online        # "online" (default) or "offline"
+```
+
+Each fold is one run, stored in the fold's output folder (`.../fold_X/wandb`). `--c` continues the fold's run and
+`--val` reopens it to add the final validation metrics. Only rank 0 logs in multi-GPU training. On machines without
+internet access use `nnLM_wandb_mode=offline` and upload later with `wandb sync <fold folder>/wandb/offline-run-*`.
+Standard W&B variables such as `WANDB_ENTITY` and `WANDB_API_KEY` work as usual.
+
 
 ## Predictions
 
